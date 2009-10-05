@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+
+##################################################
+# Twittext 0.2.0
+# http://www.techno-st.net/wiki/Twittext
+##################################################
+
+import sys
+import os
+import signal
+import twitter
+import readline
+
+#==============================
+# User Settings
+USER = "hogehoge"
+PASS = "passwd"
+
+# Terminal Settings
+Width = 80
+Height = 24
+#==============================
+
+def quit_me(signum, frame):
+    exit()
+
+signal.signal(signal.SIGINT, quit_me)
+
+api = twitter.Api(username = USER, password = PASS)
+
+api.SetSource("Twittext")
+api.SetXTwitterHeaders(
+    "Twittext",
+    "http://www.techno-st.net/wiki/Twittext",
+    "0.2")
+
+while True:
+    tl = api.GetFriendsTimeline()
+    
+    os.system("clear")
+    row = 0
+
+    print ""
+    print "=" * (Width - len(USER) - 21),
+    print "(@%s)" % USER,
+    print "[Twittext 0.2] ="
+        
+    for s in tl:        
+        print "[%7s]" % s.user.screen_name[0:7],
+
+        i = 0
+        str = ""
+
+        for c in s.text:
+            if c == "\n":
+                continue
+
+            try:
+                i += 1
+                c.encode("ascii")
+            except UnicodeEncodeError:
+                i += 1
+
+            str += c
+        
+            if not i < Width - 11:
+                print "%s" % str,
+                sys.stdout.write("\b")
+                row += 1
+
+                if row >= Height - 2:
+                    break
+
+                print "\n         ",
+                str = ""
+                i = 0
+
+        if row >= Height - 2:
+            break
+        
+        print str,
+        sys.stdout.write("\b")
+        row += 1
+        
+        if row >= Height - 2:
+            break
+        
+        print ""
+    
+    print "\r\033[%dA" % Height,
+
+    print "\bPost: ",
+    postmsg = sys.stdin.readline()
+    
+    if not postmsg == "\n":
+        ret = api.PostUpdate(postmsg.decode("utf-8"))
