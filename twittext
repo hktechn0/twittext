@@ -12,15 +12,8 @@ import signal
 import twitter
 import readline
 
-#==============================
-# User Settings
-USER = "hogehoge"
-PASS = "passwd"
-
-# Terminal Settings
-Width = 80
-Height = 24
-#==============================
+# config file
+from config import *
 
 def quit_me(signum, frame):
     exit()

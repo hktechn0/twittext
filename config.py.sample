@@ -1,0 +1,9 @@
+#==============================
+# User Settings
+USER = "hogehoge"
+PASS = "passwd"
+
+# Terminal Settings
+Width = 80
+Height = 24
+#==============================
