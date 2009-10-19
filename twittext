@@ -2,88 +2,66 @@
 #-*- coding: utf-8 -*-
 
 ##################################################
-# Twittext 0.2.0
-# http://www.techno-st.net/wiki/Twittext
+# Twittext
+# - http://www.techno-st.net/wiki/Twittext
 ##################################################
 
-import sys
-import os
-import signal
 import twitter
-import readline
+import curses
+import curses.wrapper
+import curses.textpad
+import locale
+import signal
 
 # config file
 from config import *
+
+def start(stdcur):
+    (Y, X) = stdcur.getmaxyx()
+
+    # inputwin = curses.newwin(1, X, 0, 7)
+    # textbox = curses.textpad.Textbox(inputwin)
+
+    while True:
+        show_timeline(stdcur, Y, X)
+
+        # postmsg = textbox.edit()
+        curses.echo()
+        postmsg = stdcur.getstr(0, 7)
+        stdcur.clear()
+        curses.noecho()
+    
+        if not postmsg == "":
+            ret = api.PostUpdate(postmsg.decode("utf-8"))
+
+def show_timeline(stdcur, Y, X):
+    tl = api.GetFriendsTimeline(count = (Y - 2))
+    
+    stdcur.addstr(0, 0, "wayd?: ")
+
+    header = " (@%s) [Twittext] =" % USER
+    stdcur.addstr(
+        1, 0,
+        "=" * (X - len(header)) + header)
+    
+    i = 2
+    for s in tl:
+        status = "[%7s] %s" % (
+            s.user.screen_name[0:7], s.text)
+        stdcur.addnstr(i, 0, status.encode("utf-8"), X)
+        i += 1
+    
+    stdcur.refresh()
 
 def quit_me(signum, frame):
     exit()
 
 signal.signal(signal.SIGINT, quit_me)
-
+locale.setlocale(locale.LC_ALL, "")
 api = twitter.Api(username = USER, password = PASS)
 
-#api.SetSource("Twittext")
-#api.SetXTwitterHeaders(
-#    "Twittext",
-#    "http://www.techno-st.net/wiki/Twittext",
-#    "0.2")
+if(float(twitter.__version__[:3]) >= 0.6):
+    api.SetCacheTimeout(10)
+    #api.SetSource("Twitext")
 
-while True:
-    tl = api.GetFriendsTimeline()
-    
-    os.system("clear")
-    row = 0
-
-    print ""
-    print "=" * (Width - len(USER) - 21),
-    print "(@%s)" % USER,
-    print "[Twittext 0.2] ="
-        
-    for s in tl:        
-        print "[%7s]" % s.user.screen_name[0:7],
-
-        i = 0
-        str = ""
-
-        for c in s.text:
-            if c == "\n":
-                continue
-
-            try:
-                i += 1
-                c.encode("ascii")
-            except UnicodeEncodeError:
-                i += 1
-
-            str += c
-        
-            if not i < Width - 11:
-                print "%s" % str,
-                sys.stdout.write("\b")
-                row += 1
-
-                if row >= Height - 2:
-                    break
-
-                print "\n         ",
-                str = ""
-                i = 0
-
-        if row >= Height - 2:
-            break
-        
-        print str,
-        sys.stdout.write("\b")
-        row += 1
-        
-        if row >= Height - 2:
-            break
-        
-        print ""
-    
-    print "\r\033[%dA" % Height,
-
-    postmsg = raw_input("\bPost: ")
-    
-    if not postmsg == "":
-        ret = api.PostUpdate(postmsg.decode("utf-8"))
+curses.wrapper(start)
