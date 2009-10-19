@@ -18,26 +18,72 @@ from config import *
 
 def start(stdcur):
     (Y, X) = stdcur.getmaxyx()
-
-    # inputwin = curses.newwin(1, X, 0, 7)
-    # textbox = curses.textpad.Textbox(inputwin)
+    curses.use_default_colors()
 
     while True:
-        show_timeline(stdcur, Y, X)
+        tl = api.GetFriendsTimeline(count = (Y - 2))
+        show_timeline(tl, stdcur, Y, X)
 
-        # postmsg = textbox.edit()
-        curses.echo()
-        postmsg = stdcur.getstr(0, 7)
+        curses.noecho()
+        curses.curs_set(0)
+        c = stdcur.getch(0, 7)
+        
+        if c == curses.KEY_DOWN:
+            stdcur.addstr(0, 7, " " * (X - 8))
+            stdcur.move(2, 0)
+
+            while True:
+                (ny, nx) = stdcur.getyx()
+                selstr = stdcur.instr(ny, 0, X)
+                stdcur.addstr(ny, 0, selstr, curses.A_STANDOUT)
+                c = stdcur.getch()
+
+                if c == curses.KEY_DOWN:
+                    if ny < Y - 1: v = 1
+                    else: v = 0
+                elif c == curses.KEY_UP:
+                    if ny > 2: v = -1
+                    else: v = 0
+                elif c == 0x72 or c == 0x0a or c == curses.KEY_ENTER:
+                    curses.echo()
+                    stdcur.addstr(0, 0, "Reply: ")
+
+                    target = tl[ny - 2]
+                    reply_to = target.id
+                    postmsg = "@%s " % target.user.screen_name
+                    curses.curs_set(1)
+                    stdcur.addstr(0, 7, postmsg)
+                    postmsg += stdcur.getstr(0, 7 + len(postmsg)).decode('utf-8')
+                    break
+                elif c == 0x1b:
+                    postmsg = ""
+                    break
+                else:
+                    continue
+
+                selstr = stdcur.instr(ny, 0, X)
+                stdcur.addstr(ny, 0, selstr, curses.A_NORMAL)
+                stdcur.move(ny + v, 0)
+        elif c == 0x0a or c == curses.KEY_ENTER:
+            curses.echo()
+            curses.curs_set(1)
+            stdcur.addstr(" " * (X - 8))
+            postmsg = stdcur.getstr(0, 7).decode('utf-8')
+        else:
+            continue
+            
         stdcur.clear()
         curses.noecho()
-    
+        
         if not postmsg == "":
-            ret = api.PostUpdate(postmsg.decode("utf-8"))
+            if postmsg[0] == '@':
+                ret = api.PostUpdate(postmsg, reply_to)
+            else:
+                ret = api.PostUpdate(postmsg)
 
-def show_timeline(stdcur, Y, X):
-    tl = api.GetFriendsTimeline(count = (Y - 2))
-    
+def show_timeline(tl, stdcur, Y, X):    
     stdcur.addstr(0, 0, "wayd?: ")
+    stdcur.addstr(" " * (X - 8), curses.A_STANDOUT)
 
     header = " (@%s) [Twittext] =" % USER
     stdcur.addstr(
