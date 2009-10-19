@@ -29,11 +29,11 @@ signal.signal(signal.SIGINT, quit_me)
 
 api = twitter.Api(username = USER, password = PASS)
 
-api.SetSource("Twittext")
-api.SetXTwitterHeaders(
-    "Twittext",
-    "http://www.techno-st.net/wiki/Twittext",
-    "0.2")
+#api.SetSource("Twittext")
+#api.SetXTwitterHeaders(
+#    "Twittext",
+#    "http://www.techno-st.net/wiki/Twittext",
+#    "0.2")
 
 while True:
     tl = api.GetFriendsTimeline()
@@ -90,8 +90,7 @@ while True:
     
     print "\r\033[%dA" % Height,
 
-    print "\bPost: ",
-    postmsg = sys.stdin.readline()
+    postmsg = raw_input("\bPost: ")
     
     if not postmsg == "\n":
         ret = api.PostUpdate(postmsg.decode("utf-8"))
