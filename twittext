@@ -85,5 +85,5 @@ while True:
 
     postmsg = raw_input("\bPost: ")
     
-    if not postmsg == "\n":
+    if not postmsg == "":
         ret = api.PostUpdate(postmsg.decode("utf-8"))
