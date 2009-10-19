@@ -1,0 +1,13 @@
+* Twittext
+- Simple text-based twitter client
+- http://www.techno-st.net/wiki/
+
+** Require
+- python
+-- python-twitter
+
+** Setting up
+- Edit config.py
+- Run twittext
+
+Use at your own risk.
