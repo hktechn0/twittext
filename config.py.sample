@@ -2,4 +2,7 @@
 # User Settings
 USER = "hogehoge"
 PASS = "passwd"
+
+# Reload delay (ms)
+DELAY = 180 * 1000
 #==============================

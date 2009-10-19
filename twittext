@@ -12,16 +12,32 @@ import curses.wrapper
 import curses.textpad
 import locale
 import signal
+import urllib2
 
 # config file
 from config import *
 
 def start(stdcur):
     (Y, X) = stdcur.getmaxyx()
+    stdcur.timeout(DELAY)
     curses.use_default_colors()
 
     while True:
-        tl = api.GetFriendsTimeline(count = (Y - 2))
+        try:
+            tl = api.GetFriendsTimeline(count = (Y - 2))
+        except urllib2.HTTPError, e:
+            if e.code == 401:
+                curses.endwin()
+                print "Error: Authentication Failed"
+                exit()
+            elif e.code / 100 == 5:
+                stdcur.addstr(1, 0, "[Twitter Error (%d)]" % e.code)
+                continue
+            else:
+                curses.endwin()
+                print "Error: %s", e
+                exit()
+        
         show_timeline(tl, stdcur, Y, X)
 
         curses.noecho()
@@ -44,7 +60,7 @@ def start(stdcur):
                 elif c == curses.KEY_UP:
                     if ny > 2: v = -1
                     else: v = 0
-                elif c == 0x72 or c == 0x0a or c == curses.KEY_ENTER:
+                elif c == 0x72 or c == 0x0a or c == curses.KEY_ENTER: # r, Enter
                     curses.echo()
                     stdcur.addstr(0, 0, "Reply: ")
 
@@ -55,8 +71,8 @@ def start(stdcur):
                     stdcur.addstr(0, 7, postmsg)
                     postmsg += stdcur.getstr(0, 7 + len(postmsg)).decode('utf-8')
                     break
-                elif c == 0x1b:
-                    postmsg = ""
+                elif c == 0x1b: # Esc
+                    postmsg = None
                     break
                 else:
                     continue
@@ -64,18 +80,21 @@ def start(stdcur):
                 selstr = stdcur.instr(ny, 0, X)
                 stdcur.addstr(ny, 0, selstr, curses.A_NORMAL)
                 stdcur.move(ny + v, 0)
-        elif c == 0x0a or c == curses.KEY_ENTER:
+        elif c == 0x0a or c == curses.KEY_ENTER: # Enter
             curses.echo()
             curses.curs_set(1)
             stdcur.addstr(" " * (X - 8))
             postmsg = stdcur.getstr(0, 7).decode('utf-8')
+        elif c == 0x71: # q
+            exit()
         else:
+            postmsg = None
             continue
             
         stdcur.clear()
         curses.noecho()
         
-        if not postmsg == "":
+        if not postmsg == None or postmsg == "":
             if postmsg[0] == '@':
                 ret = api.PostUpdate(postmsg, reply_to)
             else:
@@ -99,7 +118,7 @@ def show_timeline(tl, stdcur, Y, X):
     
     stdcur.refresh()
 
-def quit_me(signum, frame):
+def quit_me(signum = None, frame = None):
     exit()
 
 signal.signal(signal.SIGINT, quit_me)
