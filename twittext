@@ -24,9 +24,11 @@ def start(stdcur):
 
     while True:
         (Y, X) = stdcur.getmaxyx()
-
+        
         try:
             tl = api.GetFriendsTimeline(count = (Y - 2))
+        except TypeError:
+            tl = api.GetFriendsTimeline()
         except urllib2.HTTPError, e:
             if e.code == 401:
                 curses.endwin()
@@ -39,9 +41,13 @@ def start(stdcur):
                 curses.endwin()
                 print "Error: %s", e
                 exit()
+        except urllib2.URLError:
+            curses.endwin()
+            print "Error: Can't connect twitter."
+            exit()
         
         show_timeline(tl, stdcur, Y, X)
-
+        
         curses.noecho()
         curses.curs_set(0)
         c = stdcur.getch(0, 7)
@@ -82,7 +88,7 @@ def start(stdcur):
                     break
                 else:
                     continue
-
+                
                 selstr = stdcur.instr(ny, 0, X)
                 stdcur.addstr(ny, 0, selstr, curses.A_NORMAL)
                 stdcur.move(ny + v, 0)
@@ -93,6 +99,8 @@ def start(stdcur):
             postmsg = stdcur.getstr(0, 7).decode('utf-8')
         elif c == 0x71: # q
             exit()
+        elif c == -1:
+            postmsg = None
         else:
             postmsg = None
             continue
@@ -167,7 +175,8 @@ def split_text(s, w):
             ss = ""
             i = 0
     
-    sss.append(ss)
+    if not ss == "":
+        sss.append(ss)
 
     return sss
 
