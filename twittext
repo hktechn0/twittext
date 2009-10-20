@@ -104,7 +104,7 @@ def start(stdcur):
             if postmsg[0] == '@':
                 ret = api.PostUpdate(postmsg, reply_to)
             else:
-                ret = api.PostUpdate(postmsg)
+                ret = api.PostUpdate(postmsg + FOOTER)
 
 def show_timeline(tl, stdcur, Y, X):    
     stdcur.addstr(0, 0, "wayd?: ")
@@ -124,7 +124,14 @@ def show_timeline(tl, stdcur, Y, X):
         sss = split_text(s.text, X - 10)
 
         for ss in sss:
-            stdcur.addstr(i, 10, ss.encode("utf-8"))
+            try:
+                stdcur.addstr(i, 10, ss.encode("utf-8"))
+            except:
+                # debug
+                curses.endwin()
+                print "Please report: "
+                print ss
+                exit()
 
             i += 1
             if i >= Y:
@@ -151,7 +158,7 @@ def split_text(s, w):
 
         ss += c
         
-        if i >= w:
+        if i >= w - 1:
             if len(sss) == 0:
                 sss = [ss]
             else:

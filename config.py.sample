@@ -1,7 +1,12 @@
+#-*- coding: utf-8 -*-
+
 #==============================
 # User Settings
 USER = "hogehoge"
 PASS = "passwd"
+
+# Post status footer
+FOOTER = u""
 
 # Reload delay (ms)
 DELAY = 180 * 1000
