@@ -94,7 +94,7 @@ def start(stdcur):
         stdcur.clear()
         curses.noecho()
         
-        if not postmsg == None or postmsg == "":
+        if not postmsg == None and not postmsg == "":
             if postmsg[0] == '@':
                 ret = api.PostUpdate(postmsg, reply_to)
             else:
