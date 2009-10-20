@@ -18,9 +18,12 @@ import string
 # config file
 from config import *
 
+cachetime = 30
+
 def start(stdcur):
     stdcur.timeout(DELAY)
     curses.use_default_colors()
+    force_reload = False
 
     while True:
         (Y, X) = stdcur.getmaxyx()
@@ -46,7 +49,11 @@ def start(stdcur):
             print "Error: Can't connect twitter."
             exit()
         
-        show_timeline(tl, stdcur, Y, X)
+        if force_reload:
+            api.SetCacheTimeout(cachetime)
+            force_reload = False
+
+        tl_list = show_timeline(tl, stdcur, Y, X)
         
         curses.noecho()
         curses.curs_set(0)
@@ -58,7 +65,7 @@ def start(stdcur):
 
             while True:
                 (ny, nx) = stdcur.getyx()
-                selstr = stdcur.instr(ny, 0, X)
+                selstr = stdcur.instr(ny, 0)
                 stdcur.addstr(ny, 0, selstr, curses.A_STANDOUT)
                 c = stdcur.getch()
 
@@ -72,24 +79,28 @@ def start(stdcur):
                     curses.echo()
                     stdcur.addstr(0, 0, "Reply: ")
                     
-                    target = tl[ny - 2]
+                    target = tl_list[ny - 2]
                     reply_to = target.id
+
                     postmsg = "@%s " % target.user.screen_name
                     curses.curs_set(1)
                     stdcur.addstr(0, 7, postmsg)
-                    tmpstr = stdcur.getstr(0, 7 + len(postmsg)).decode('utf-8')
+                    tmpstr = stdcur.getstr(
+                        0, 7 + len(postmsg)).decode('utf-8')
+
                     if not tmpstr == "":
                         postmsg += tmpstr
                     else:
                         postmsg = ""
-                    break
+
+                    break # this is ok
                 elif c == 0x1b: # Esc
                     postmsg = None
                     break
                 else:
                     continue
                 
-                selstr = stdcur.instr(ny, 0, X)
+                selstr = stdcur.instr(ny, 0)
                 stdcur.addstr(ny, 0, selstr, curses.A_NORMAL)
                 stdcur.move(ny + v, 0)
         elif c == 0x0a or c == curses.KEY_ENTER: # Enter
@@ -97,6 +108,10 @@ def start(stdcur):
             curses.curs_set(1)
             stdcur.addstr(" " * (X - 8))
             postmsg = stdcur.getstr(0, 7).decode('utf-8')
+        elif c == 0x72: # r
+            api.SetCacheTimeout(0)
+            force_reload = True
+            postmsg = None
         elif c == 0x71: # q
             exit()
         elif c == -1:
@@ -123,6 +138,7 @@ def show_timeline(tl, stdcur, Y, X):
         1, 0,
         "=" * (X - len(header)) + header)
     
+    ret = []
     i = 2
     for s in tl:
         stdcur.addstr(
@@ -134,11 +150,12 @@ def show_timeline(tl, stdcur, Y, X):
         for ss in sss:
             try:
                 stdcur.addstr(i, 10, ss.encode("utf-8"))
+                ret.append(s)
             except:
                 # debug
                 curses.endwin()
-                print "Please report: "
-                print ss
+                print "Please report (addstr bug): "
+                print "[1234567] %s" % ss
                 exit()
 
             i += 1
@@ -149,6 +166,8 @@ def show_timeline(tl, stdcur, Y, X):
             break
     
     stdcur.refresh()
+
+    return ret
 
 def split_text(s, w):
     i = 0
@@ -188,7 +207,7 @@ locale.setlocale(locale.LC_ALL, "")
 api = twitter.Api(username = USER, password = PASS)
 
 if(float(twitter.__version__[:3]) >= 0.6):
-    api.SetCacheTimeout(30)
+    api.SetCacheTimeout(cachetime)
     #api.SetSource("Twitext")
 
 curses.wrapper(start)
