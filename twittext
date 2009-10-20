@@ -27,6 +27,11 @@ def start(stdcur):
 
     while True:
         (Y, X) = stdcur.getmaxyx()
+
+        curses.noecho()
+        curses.curs_set(0)
+        stdcur.addstr(0, 0, "Reloading Timeline...")
+        stdcur.refresh()
         
         try:
             tl = api.GetFriendsTimeline(count = (Y - 2))
@@ -55,8 +60,6 @@ def start(stdcur):
 
         tl_list = show_timeline(tl, stdcur, Y, X)
         
-        curses.noecho()
-        curses.curs_set(0)
         c = stdcur.getch(0, 7)
         
         if c == curses.KEY_DOWN:
@@ -75,7 +78,8 @@ def start(stdcur):
                 elif c == curses.KEY_UP:
                     if ny > 2: v = -1
                     else: v = 0
-                elif c == 0x72 or c == 0x0a or c == curses.KEY_ENTER: # r, Enter
+                elif c == 0x0a or c == curses.KEY_ENTER: # Enter
+                    # Reply
                     curses.echo()
                     stdcur.addstr(0, 0, "Reply: ")
                     
@@ -91,6 +95,29 @@ def start(stdcur):
                     if not tmpstr == "":
                         postmsg += tmpstr
                     else:
+                        postmsg = ""
+
+                    break # this is ok
+                elif c == 0x72: # r
+                    # ReTweet
+                    curses.echo()
+                    stdcur.addstr(0, 0, "ReTweet: ")
+                    
+                    target = tl_list[ny - 2]
+                    reply_to = target.id
+
+                    curses.curs_set(1)
+                    tmpstr = stdcur.getstr(0, 9).decode('utf-8')
+
+                    if tmpstr == "":
+                        postmsg = "RT @%s: %s" % (target.user.screen_name, target.text)
+                    else:
+                        postmsg = "%s RT @%s: %s" % (tmpstr, target.user.screen_name, target.text)
+
+                    stdcur.move(0, 0)
+                    stdcur.clrtoeol()
+                    stdcur.addstr(0, 0, "OK? (Y/n): ")
+                    if stdcur.getch(0, 11) == 0x6e: # n
                         postmsg = ""
 
                     break # this is ok
@@ -122,12 +149,24 @@ def start(stdcur):
         
         stdcur.clear()
         curses.noecho()
+
+        stdcur.addstr(0, 0, "Posting Status...")
+        stdcur.refresh()
         
         if not postmsg == None and not postmsg == "":
-            if postmsg[0] == '@':
-                ret = api.PostUpdate(postmsg, reply_to)
-            else:
-                ret = api.PostUpdate(postmsg + FOOTER)
+            try:
+                if postmsg[0] == '@':
+                    ret = api.PostUpdate(postmsg[:140], reply_to)
+                else:
+                    ret = api.PostUpdate((postmsg + FOOTER)[:140])
+            except urllib2.HTTPError, e:
+                if e.code / 100 == 5:
+                    stdcur.addstr(1, 0, 
+                                  "[Error]: Twitter over capacity. (please any key)")
+                    stdcur.refresh()
+                    stdcur.getch()
+
+        stdcur.clear()
 
 def show_timeline(tl, stdcur, Y, X):    
     stdcur.addstr(0, 0, "wayd?: ")
