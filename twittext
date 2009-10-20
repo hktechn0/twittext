@@ -13,16 +13,18 @@ import curses.textpad
 import locale
 import signal
 import urllib2
+import string
 
 # config file
 from config import *
 
 def start(stdcur):
-    (Y, X) = stdcur.getmaxyx()
     stdcur.timeout(DELAY)
     curses.use_default_colors()
 
     while True:
+        (Y, X) = stdcur.getmaxyx()
+
         try:
             tl = api.GetFriendsTimeline(count = (Y - 2))
         except urllib2.HTTPError, e:
@@ -63,13 +65,17 @@ def start(stdcur):
                 elif c == 0x72 or c == 0x0a or c == curses.KEY_ENTER: # r, Enter
                     curses.echo()
                     stdcur.addstr(0, 0, "Reply: ")
-
+                    
                     target = tl[ny - 2]
                     reply_to = target.id
                     postmsg = "@%s " % target.user.screen_name
                     curses.curs_set(1)
                     stdcur.addstr(0, 7, postmsg)
-                    postmsg += stdcur.getstr(0, 7 + len(postmsg)).decode('utf-8')
+                    tmpstr = stdcur.getstr(0, 7 + len(postmsg)).decode('utf-8')
+                    if not tmpstr == "":
+                        postmsg += tmpstr
+                    else:
+                        postmsg = ""
                     break
                 elif c == 0x1b: # Esc
                     postmsg = None
@@ -90,7 +96,7 @@ def start(stdcur):
         else:
             postmsg = None
             continue
-            
+        
         stdcur.clear()
         curses.noecho()
         
@@ -103,7 +109,7 @@ def start(stdcur):
 def show_timeline(tl, stdcur, Y, X):    
     stdcur.addstr(0, 0, "wayd?: ")
     stdcur.addstr(" " * (X - 8), curses.A_STANDOUT)
-
+    
     header = " (@%s) [Twittext] =" % USER
     stdcur.addstr(
         1, 0,
@@ -111,12 +117,52 @@ def show_timeline(tl, stdcur, Y, X):
     
     i = 2
     for s in tl:
-        status = "[%7s] %s" % (
-            s.user.screen_name[0:7], s.text)
-        stdcur.addnstr(i, 0, status.encode("utf-8"), X)
-        i += 1
+        stdcur.addstr(
+            i, 0, "[%7s] " % (
+                s.user.screen_name[0:7]))
+        
+        sss = split_text(s.text, X - 10)
+
+        for ss in sss:
+            stdcur.addstr(i, 10, ss.encode("utf-8"))
+
+            i += 1
+            if i >= Y:
+                break
+        
+        if i >= Y:
+            break
     
     stdcur.refresh()
+
+def split_text(s, w):
+    i = 0
+    ss = ""
+    sss = []
+    
+    for c in s:
+        if c == "\n":
+            continue
+        
+        if 0x00 <= ord(c) <= 0x7f:
+            i += 1
+        else:
+            i += 2
+
+        ss += c
+        
+        if i >= w:
+            if len(sss) == 0:
+                sss = [ss]
+            else:
+                sss.append(ss)
+            
+            ss = ""
+            i = 0
+    
+    sss.append(ss)
+
+    return sss
 
 def quit_me(signum = None, frame = None):
     exit()
@@ -126,7 +172,7 @@ locale.setlocale(locale.LC_ALL, "")
 api = twitter.Api(username = USER, password = PASS)
 
 if(float(twitter.__version__[:3]) >= 0.6):
-    api.SetCacheTimeout(10)
+    api.SetCacheTimeout(30)
     #api.SetSource("Twitext")
 
 curses.wrapper(start)
