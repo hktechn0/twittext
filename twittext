@@ -31,7 +31,7 @@ def start(stdcur):
 
         curses.noecho()
         curses.curs_set(0)
-        stdcur.addstr(0, 0, "Reloading Timeline...")
+        stdcur.addstr(0, 0, "Loading Timeline...")
         stdcur.refresh()
         
         try:
@@ -70,7 +70,12 @@ def start(stdcur):
             while True:
                 (ny, nx) = stdcur.getyx()
                 selstr = stdcur.instr(ny, 0)
-                stdcur.addstr(ny, 0, selstr, curses.A_STANDOUT)
+
+                if ny < Y - 1:
+                    stdcur.addstr(ny, 0, selstr, curses.A_STANDOUT)
+                else:
+                    stdcur.addstr(ny, 0, selstr[:len(selstr) - 1], curses.A_STANDOUT)
+
                 stdcur.move(ny, 0)
 
                 c = stdcur.getch()
@@ -135,7 +140,11 @@ def start(stdcur):
                     continue
 
                 selstr = stdcur.instr(ny, 0)
-                stdcur.addstr(ny, 0, selstr, curses.A_NORMAL)
+
+                if ny < Y - 1:
+                    stdcur.addstr(ny, 0, selstr, curses.A_NORMAL)
+                else:
+                    stdcur.addstr(ny, 0, selstr[:len(selstr) - 1], curses.A_NORMAL)
                 stdcur.move(ny + v, 0)
         elif c == 0x0a or c == curses.KEY_ENTER: # Enter
             curses.echo()
@@ -176,7 +185,7 @@ def start(stdcur):
         stdcur.clear()
 
 def show_timeline(tl, stdcur, Y, X):    
-    stdcur.addstr(0, 0, "wayd?: ")
+    stdcur.addstr(0, 0, "Post?: ")
     stdcur.addstr(" " * (X - 8), curses.A_STANDOUT)
     
     header = " (@%s) [Twittext] =" % USER
@@ -194,17 +203,12 @@ def show_timeline(tl, stdcur, Y, X):
         sss = split_text(s.text, X - 10)
 
         for ss in sss:
-            try:
-                stdcur.leaveok(1)
+            if i < Y - 1:
                 stdcur.addstr(i, 10, ss.encode("utf-8"))
-                stdcur.leaveok(0)
-                ret.append(s)
-            except:
-                # debug
-                curses.endwin()
-                print "Please report (addstr bug): "
-                print "[1234567] %s" % ss
-                exit()
+            else:
+                stdcur.addstr(i, 10, ss[:len(ss) - 1].encode("utf-8"))
+            
+            ret.append(s)
             
             i += 1
             if i >= Y:
