@@ -24,6 +24,7 @@ def start(stdcur):
     stdcur.timeout(DELAY)
     curses.use_default_colors()
     force_reload = False
+    stdcur.scrollok(0)
 
     while True:
         (Y, X) = stdcur.getmaxyx()
@@ -65,19 +66,25 @@ def start(stdcur):
         if c == curses.KEY_DOWN:
             stdcur.addstr(0, 7, " " * (X - 8))
             stdcur.move(2, 0)
-
+            
             while True:
                 (ny, nx) = stdcur.getyx()
                 selstr = stdcur.instr(ny, 0)
                 stdcur.addstr(ny, 0, selstr, curses.A_STANDOUT)
-                c = stdcur.getch()
+                stdcur.move(ny, 0)
 
+                c = stdcur.getch()
+                
                 if c == curses.KEY_DOWN:
-                    if ny < Y - 1: v = 1
-                    else: v = 0
+                    if ny < Y - 1:
+                        v = 1
+                    else:
+                        v = 0
                 elif c == curses.KEY_UP:
-                    if ny > 2: v = -1
-                    else: v = 0
+                    if ny > 2:
+                        v = -1
+                    else:
+                        v = 0
                 elif c == 0x0a or c == curses.KEY_ENTER: # Enter
                     # Reply
                     curses.echo()
@@ -126,7 +133,7 @@ def start(stdcur):
                     break
                 else:
                     continue
-                
+
                 selstr = stdcur.instr(ny, 0)
                 stdcur.addstr(ny, 0, selstr, curses.A_NORMAL)
                 stdcur.move(ny + v, 0)
@@ -188,7 +195,9 @@ def show_timeline(tl, stdcur, Y, X):
 
         for ss in sss:
             try:
+                stdcur.leaveok(1)
                 stdcur.addstr(i, 10, ss.encode("utf-8"))
+                stdcur.leaveok(0)
                 ret.append(s)
             except:
                 # debug
@@ -196,7 +205,7 @@ def show_timeline(tl, stdcur, Y, X):
                 print "Please report (addstr bug): "
                 print "[1234567] %s" % ss
                 exit()
-
+            
             i += 1
             if i >= Y:
                 break
