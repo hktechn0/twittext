@@ -133,6 +133,9 @@ def start(stdcur):
                         postmsg = ""
 
                     break # this is ok
+                elif c == 0x73: # s
+                    # show user timeline
+                    pass
                 elif c == 0x1b: # Esc
                     postmsg = None
                     break
@@ -155,6 +158,9 @@ def start(stdcur):
             api.SetCacheTimeout(0)
             force_reload = True
             postmsg = None
+        elif c == 0x40: # @
+            # show replies
+            pass
         elif c == 0x71: # q
             exit()
         elif c == -1:
@@ -204,7 +210,12 @@ def show_timeline(tl, stdcur, Y, X):
 
         for ss in sss:
             if i < Y - 1:
-                stdcur.addstr(i, 10, ss.encode("utf-8"))
+                try:
+                    stdcur.addstr(i, 10, ss.encode("utf-8"))
+                except:
+                    curses.endwin()
+                    print ss
+                    exit()
             else:
                 stdcur.addstr(i, 10, ss[:len(ss) - 1].encode("utf-8"))
             
