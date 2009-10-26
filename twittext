@@ -25,7 +25,7 @@ def start(stdcur):
     curses.use_default_colors()
     force_reload = False
     stdcur.scrollok(0)
-
+    
     while True:
         (Y, X) = stdcur.getmaxyx()
 
@@ -74,7 +74,7 @@ def start(stdcur):
         if c == curses.KEY_DOWN:
             stdcur.addstr(0, 7, " " * (X - 8))
             stdcur.move(2, 0)
-            postmsg = post_select_mode(tl_list, stdcur, Y, X)
+            postmsg = post_select_mode(tl_list, stdcur, stdcur, Y, X)
         elif c == 0x0a or c == curses.KEY_ENTER: # Enter
             curses.echo()
             curses.curs_set(1)
@@ -88,12 +88,13 @@ def start(stdcur):
             # show replies
             repwin = stdcur.subwin(2, 0)
             repwin.clear()
-
+            
             reps = api.GetReplies()
             rep_list = show_timeline(reps, repwin, Y, X, 0)
-
+            
             repwin.move(0, 0)
-            postmsg = post_select_mode(rep_list, repwin, Y, X)
+            repwin.refresh()
+            postmsg = post_select_mode(rep_list, repwin, stdcur, Y, X)
         elif c == 0x71: # q
             exit()
         elif c == -1:
@@ -110,7 +111,8 @@ def start(stdcur):
         
         if not postmsg == None and not postmsg == "":
             try:
-                if postmsg[0] == '@':
+                if isinstance(postmsg[1], long):
+                    (postmsg, reply_to) = postmsg
                     ret = api.PostUpdate(postmsg[:140], reply_to)
                 else:
                     ret = api.PostUpdate((postmsg + FOOTER)[:140])
@@ -120,28 +122,25 @@ def start(stdcur):
                                   "[Error]: Twitter over capacity. (please any key)")
                     stdcur.refresh()
                     stdcur.getch()
-
+        
         stdcur.clear()
 
 def show_timeline(tl, win, Y, X, starty = 2):
     ret = []
     i = starty
-
+    
     win.move(0, 0)
+    win.refresh()
     (sy, sx) = curses.getsyx()
     sy = sy + i
     
     for s in tl:
-        try:
-            win.addstr(
-                i, 0, "[%7s] " % (
-                    s.user.screen_name[0:7]))
-        except:
-            curses.endwin()
-            print i, Y, sy, s.user.screen_name
+        win.addstr(
+            i, 0, "[%7s] " % (
+                s.user.screen_name[0:7]))
         
         sss = split_text(s.text, X - 10)
-
+        
         for ss in sss:
             if sy < Y - 1:
                 win.addstr(i, 10, ss.encode("utf-8"))
@@ -149,86 +148,107 @@ def show_timeline(tl, win, Y, X, starty = 2):
                 win.addstr(i, 10, ss[:len(ss) - 1].encode("utf-8"))
             
             ret.append(s)
-
+            
             i += 1
             sy += 1
-
-            if sy + 1 >= Y:
+            
+            if sy >= Y:
                 break
         
         if sy >= Y:
             break
     
     win.refresh()
-
+    
     return ret
 
-def post_select_mode(tl_list, win, Y, X):
+def post_select_mode(tl_list, win, stdcur, Y, X):
+    (ny, nx) = win.getyx()
+    starty = ny
+
+    win.move(0, 0)
+    win.refresh()
+    (sy, sx) = curses.getsyx()
+    maxy = Y - sy
+    
+    win.move(ny, nx)
+    
     while True:
         (ny, nx) = win.getyx()
         selstr = win.instr(ny, 0)
         
-        if ny < Y - 1:
+        if ny < maxy - 1:
             win.addstr(ny, 0, selstr, curses.A_STANDOUT)
         else:
             win.addstr(ny, 0, selstr[:len(selstr) - 1], curses.A_STANDOUT)
-            
+        
         win.move(ny, 0)
+        win.refresh()
+        (ty, tx) = win.getyx()
 
-        c = win.getch()
+        curses.flushinp()
+        c = stdcur.getch(0, 7)
+
+        win.move(ty, tx)
+        win.refresh()
         
         if c == curses.KEY_DOWN:
-            if ny < Y - 1:
+            if ny < maxy - 1:
                 v = 1
             else:
                 v = 0
         elif c == curses.KEY_UP:
-            if ny > 2:
+            if ny > starty:
                 v = -1
             else:
                 v = 0
         elif c == 0x0a or c == curses.KEY_ENTER: # Enter
             # Reply
+            if len(tl_list) <= ny - starty:
+                continue
+
             curses.echo()
-            win.addstr(0, 0, "Reply: ")
-            
-            target = tl_list[ny - 2]
+            stdcur.addstr(0, 0, "Reply: ")            
+
+            target = tl_list[ny - starty]
             reply_to = target.id
             
             postmsg = "@%s " % target.user.screen_name
             curses.curs_set(1)
-            win.addstr(0, 7, postmsg)
-            tmpstr = win.getstr(
+            stdcur.addstr(0, 7, postmsg)
+            tmpstr = stdcur.getstr(
                 0, 7 + len(postmsg)).decode('utf-8')
             
             if not tmpstr == "":
                 postmsg += tmpstr
+                postmsg = (postmsg, reply_to)
             else:
                 postmsg = ""
-                
+ 
             break # this is ok
         elif c == 0x72: # r
             # ReTweet
             curses.echo()
-            win.addstr(0, 0, "ReTweet: ")
+            stdcur.addstr(0, 0, "ReTweet: ")
             
-            target = tl_list[ny - 2]
+            target = tl_list[ny - starty]
             reply_to = target.id
             
             curses.curs_set(1)
-            tmpstr = win.getstr(0, 9).decode('utf-8')
+            tmpstr = stdcur.getstr(0, 9).decode('utf-8')
             
             if tmpstr == "":
                 postmsg = "RT @%s: %s" % (target.user.screen_name, target.text)
             else:
                 postmsg = "%s RT @%s: %s" % (tmpstr, target.user.screen_name, target.text)
-                
-            win.move(0, 0)
-            win.clrtoeol()
-            win.addstr(0, 0, "OK? (Y/n): ")
-            if win.getch(0, 11) == 0x6e: # n
+            
+            stdcur.move(0, 0)
+            stdcur.clrtoeol()
+            stdcur.addstr(0, 0, "OK? (Y/n): ")
+            
+            if stdcur.getch(0, 11) == 0x6e: # n
                 postmsg = ""
-                
+ 
             break # this is ok
         elif c == 0x73: # s
             # show user timeline
@@ -240,16 +260,16 @@ def post_select_mode(tl_list, win, Y, X):
             continue
         
         selstr = win.instr(ny, 0)
-
-        if ny < Y - 1:
+        
+        if ny < maxy - 1:
             win.addstr(ny, 0, selstr, curses.A_NORMAL)
         else:
             win.addstr(ny, 0, selstr[:len(selstr) - 1], curses.A_NORMAL)
-            
+        
         win.move(ny + v, 0)
-
+        
         win.refresh()
-
+    
     return postmsg
 
 def split_text(s, w):
@@ -281,6 +301,10 @@ def split_text(s, w):
         sss.append(ss)
 
     return sss
+
+def debug_print(txt):
+    curses.endwin()
+    print txt
 
 def quit_me(signum = None, frame = None):
     exit()
