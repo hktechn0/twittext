@@ -119,7 +119,9 @@ def start(stdcur):
             except urllib2.HTTPError, e:
                 if e.code / 100 == 5:
                     stdcur.addstr(1, 0, 
-                                  "[Error]: Twitter over capacity. (please any key)")
+                                  "Error: Twitter over capacity...")
+                    stdcur.addstr(2, 0,
+                                  "Press any key to continue.")
                     stdcur.refresh()
                     stdcur.getch()
         
@@ -191,6 +193,13 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
 
         win.move(ty, tx)
         win.refresh()
+
+        if len(tl_list) <= ny - starty:
+            target = None
+        else:
+            target = tl_list[ny - starty]
+
+        postmsg = None
         
         if c == curses.KEY_DOWN:
             if ny < maxy - 1:
@@ -204,57 +213,77 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
                 v = 0
         elif c == 0x0a or c == curses.KEY_ENTER: # Enter
             # Reply
-            if len(tl_list) <= ny - starty:
+            if target == None:
                 continue
 
             curses.echo()
             stdcur.addstr(0, 0, "Reply: ")            
 
-            target = tl_list[ny - starty]
             reply_to = target.id
             
-            postmsg = "@%s " % target.user.screen_name
+            replymsg = "@%s " % target.user.screen_name
             curses.curs_set(1)
-            stdcur.addstr(0, 7, postmsg)
+            stdcur.addstr(0, 7, replymsg)
             tmpstr = stdcur.getstr(
-                0, 7 + len(postmsg)).decode('utf-8')
+                0, 7 + len(replymsg)).decode('utf-8')
             
-            if not tmpstr == "":
-                postmsg += tmpstr
-                postmsg = (postmsg, reply_to)
-            else:
-                postmsg = ""
+            if not tmpstr == "": # empty reply?
+                replymsg += tmpstr
+                postmsg = (replymsg, reply_to)
  
             break # this is ok
         elif c == 0x72: # r
             # ReTweet
+            if target == None:
+                continue
+
             curses.echo()
             stdcur.addstr(0, 0, "ReTweet: ")
             
-            target = tl_list[ny - starty]
             reply_to = target.id
             
             curses.curs_set(1)
             tmpstr = stdcur.getstr(0, 9).decode('utf-8')
             
             if tmpstr == "":
-                postmsg = "RT @%s: %s" % (target.user.screen_name, target.text)
+                rtmsg = "RT @%s: %s" % (target.user.screen_name, target.text)
             else:
-                postmsg = "%s RT @%s: %s" % (tmpstr, target.user.screen_name, target.text)
+                rtmsg = "%s RT @%s: %s" % (tmpstr, target.user.screen_name, target.text)
             
             stdcur.move(0, 0)
             stdcur.clrtoeol()
             stdcur.addstr(0, 0, "OK? (Y/n): ")
             
-            if stdcur.getch(0, 11) == 0x6e: # n
-                postmsg = ""
+            if not stdcur.getch(0, 11) == 0x6e: # Y?
+                postmsg = rtmsg
  
             break # this is ok
         elif c == 0x73: # s
             # show user timeline
             pass
+        elif c == 0x64: # d
+            # Destroy Post
+            if target == None:
+                continue
+
+            stdcur.move(0, 0)
+            stdcur.clrtoeol()
+            stdcur.addstr(0, 0, "Destroy? (Y/n): ")
+            
+            if not stdcur.getch(0, 11) == 0x6e: # n
+                try:
+                    api.DestroyStatus(target.id)
+                except urllib2.HTTPError:
+                    stdcur.clear()
+                    stdcur.addstr(0, 0, 
+                                  "Error: Oops! Can't Destroy...")
+                    stdcur.addstr(1, 0,
+                                  "Press any key to continue.")
+                    stdcur.refresh()
+                    stdcur.getch()
+
+            break # this is ok
         elif c == 0x1b: # Esc
-            postmsg = None
             break
         else:
             continue
