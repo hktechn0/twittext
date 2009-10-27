@@ -258,9 +258,22 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
                 postmsg = rtmsg
  
             break # this is ok
-        elif c == 0x73: # s
+        elif c == 0x75: # u
             # show user timeline
-            pass
+            if target == None:
+                continue
+
+            usrwin = stdcur.subwin(2, 0)
+            usrwin.clear()
+            
+            usrtl = api.GetUserTimeline(target.user.id)
+            usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
+            
+            usrwin.move(0, 0)
+            usrwin.refresh()
+
+            postmsg = post_select_mode(usr_list, usrwin, stdcur, Y, X)
+            break
         elif c == 0x64: # d
             # Destroy Post
             if target == None:
