@@ -112,8 +112,12 @@ def start(stdcur):
         if not postmsg == None and not postmsg == "":
             try:
                 if isinstance(postmsg[1], long):
-                    (postmsg, reply_to) = postmsg
-                    ret = api.PostUpdate(postmsg[:140], reply_to)
+                    (message, reply_to) = postmsg
+
+                    if pytw_ver >= 0.6:
+                        ret = api.PostUpdate(message[:140], reply_to)
+                    else:
+                        ret = api.PostUpdate(message[:140])
                 else:
                     ret = api.PostUpdate((postmsg + FOOTER)[:140])
             except urllib2.HTTPError, e:
@@ -354,8 +358,9 @@ def quit_me(signum = None, frame = None):
 signal.signal(signal.SIGINT, quit_me)
 locale.setlocale(locale.LC_ALL, "")
 api = twitter.Api(username = USER, password = PASS)
+pytw_ver = float(twitter.__version__[:3])
 
-if(float(twitter.__version__[:3]) >= 0.6):
+if(pytw_ver >= 0.6):
     api.SetCacheTimeout(cachetime)
     #api.SetSource("Twitext")
 
