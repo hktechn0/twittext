@@ -111,7 +111,7 @@ def start(stdcur):
         
         if not postmsg == None and not postmsg == "":
             try:
-                if isinstance(postmsg[1], long):
+                if isinstance(postmsg, tuple):
                     (message, reply_to) = postmsg
 
                     if pytw_ver >= 0.6:
@@ -119,7 +119,8 @@ def start(stdcur):
                     else:
                         ret = api.PostUpdate(message[:140])
                 else:
-                    ret = api.PostUpdate((postmsg + FOOTER)[:140])
+                    postmsg += FOOTER
+                    ret = api.PostUpdate(postmsg[:140])
             except urllib2.HTTPError, e:
                 if e.code / 100 == 5:
                     stdcur.addstr(1, 0, 
