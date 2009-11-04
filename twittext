@@ -26,15 +26,18 @@ def start(stdcur):
     
     while True:
         (Y, X) = stdcur.getmaxyx()
-
+        
         curses.noecho()
         curses.curs_set(0)
+
+        stdcur.clear()
         stdcur.addstr(0, 0, "Loading Timeline...")
         stdcur.refresh()
         
         try:
             tl = api.GetFriendsTimeline(count = (Y - 2))
         except TypeError:
+            # for old version api
             tl = api.GetFriendsTimeline()
         except urllib2.HTTPError, e:
             if e.code == 401:
@@ -56,18 +59,20 @@ def start(stdcur):
         if force_reload:
             api.SetCacheTimeout(cachetime)
             force_reload = False
-
+        
+        stdcur.clear()
         stdcur.addstr(0, 0, "Post?: ")
         stdcur.addstr(" " * (X - 8), curses.A_STANDOUT)
-        
         header = " (@%s) [Twittext] =" % USER
         stdcur.addstr(
             1, 0,
             "=" * (X - len(header)) + header)
-
+        stdcur.refresh()
+        
         tl_list = show_timeline(tl, stdcur, Y, X)
         
         c = stdcur.getch(0, 7)
+        curses.flushinp()
         
         if c == curses.KEY_DOWN:
             stdcur.addstr(0, 7, " " * (X - 8))
@@ -81,24 +86,23 @@ def start(stdcur):
         elif c == 0x72: # r
             api.SetCacheTimeout(0)
             force_reload = True
-            postmsg = None
+            continue
         elif c == 0x40: # @
             # show replies
             repwin = stdcur.subwin(2, 0)
             repwin.clear()
-            
+            stdcur.addstr(" " * (X - 8))
+
             reps = api.GetReplies()
             rep_list = show_timeline(reps, repwin, Y, X, 0)
-            
             repwin.move(0, 0)
             repwin.refresh()
             postmsg = post_select_mode(rep_list, repwin, stdcur, Y, X)
         elif c == 0x71: # q
             exit()
         elif c == -1:
-            postmsg = None
+            continue
         else:
-            postmsg = None
             continue
         
         stdcur.clear()
