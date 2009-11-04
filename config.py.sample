@@ -10,4 +10,7 @@ FOOTER = u""
 
 # Reload delay (ms)
 DELAY = 180 * 1000
+
+# twitter API cache time
+cachetime = 30
 #==============================
