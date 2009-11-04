@@ -73,17 +73,19 @@ def start(stdcur):
         
         c = stdcur.getch(0, 7)
         curses.flushinp()
+        stdcur.clrtoeol()
         
         if c == curses.KEY_DOWN:
-            stdcur.addstr(0, 7, " " * (X - 8))
+            # status select mode
             stdcur.move(2, 0)
             postmsg = post_select_mode(tl_list, stdcur, stdcur, Y, X)
         elif c == 0x0a or c == curses.KEY_ENTER: # Enter
+            # post status
             curses.echo()
             curses.curs_set(1)
-            stdcur.addstr(" " * (X - 8))
             postmsg = stdcur.getstr(0, 7).decode('utf-8')
         elif c == 0x72: # r
+            # force reload
             api.SetCacheTimeout(0)
             force_reload = True
             continue
@@ -91,18 +93,39 @@ def start(stdcur):
             # show replies
             repwin = stdcur.subwin(2, 0)
             repwin.clear()
-            stdcur.addstr(" " * (X - 8))
 
             reps = api.GetReplies()
             rep_list = show_timeline(reps, repwin, Y, X, 0)
+
             repwin.move(0, 0)
             repwin.refresh()
             postmsg = post_select_mode(rep_list, repwin, stdcur, Y, X)
+        elif c == 0x75: # u
+            # show user status
+            curses.echo()
+            curses.curs_set(1)
+            stdcur.addstr(0, 0, "User?: @")
+            username = stdcur.getstr(0, 8).decode('utf-8')
+            curses.noecho()
+            curses.curs_set(0)
+            
+            usrwin = stdcur.subwin(2, 0)
+            usrwin.clear()
+            
+            usrtl = api.GetUserTimeline(username)
+            usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
+            
+            usrwin.move(0, 0)
+            usrwin.refresh()
+            postmsg = post_select_mode(usr_list, usrwin, stdcur, Y, X)
         elif c == 0x71: # q
+            # quit
             exit()
         elif c == -1:
+            # nothing input
             continue
         else:
+            # other input
             continue
         
         stdcur.clear()
