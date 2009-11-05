@@ -20,9 +20,15 @@ from config import *
 
 def start(stdcur):
     stdcur.timeout(DELAY)
-    curses.use_default_colors()
-    force_reload = False
     stdcur.scrollok(0)
+    curses.use_default_colors()
+
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_RED, -1)
+    curses.init_pair(2, curses.COLOR_GREEN, -1)
+    curses.init_pair(3, curses.COLOR_BLUE, -1)    
+
+    force_reload = False
 
     while True:
         (Y, X) = stdcur.getmaxyx()
@@ -164,6 +170,9 @@ def start(stdcur):
         stdcur.refresh()
         
         if not postmsg == None and not postmsg == "":
+            api.SetCacheTimeout(0)
+            force_reload = True
+            
             try:
                 if isinstance(postmsg, tuple):
                     (message, reply_to) = postmsg
@@ -194,19 +203,37 @@ def show_timeline(tl, win, Y, X, starty = 2):
     sy = sy + i
     
     for s in tl:
-        win.addstr(
-            i, 0, "[%7s] " % (s.user.screen_name[0:7]))
+        if s.user.screen_name == USER:
+            win.attrset(curses.color_pair(3))
+        elif s.in_reply_to_screen_name == USER:
+            win.attrset(curses.color_pair(1) | curses.A_BOLD)
+        elif s.text.find("@%s" % USER) != -1:
+            if s.text.find("@%s" % USER) == 0:
+                win.attrset(curses.color_pair(1))
+            else:
+                win.attrset(curses.color_pair(2))
+        else:
+            win.attrset(0)
+            
+        win.addstr(i, 0, "[%7s] " % (s.user.screen_name[0:7]))
         
         sss = split_text(s.text, X - 10)
-        
+
+        ii = 0
         for ss in sss:
             if sy < Y - 1:
                 win.addstr(i, 10, ss.encode("utf-8"))
             else:
+                # lower left char bug fix
                 win.addstr(i, 10, ss[:len(ss) - 1].encode("utf-8"))
+
+            if ii > 0:
+                # for post_select_mode() (gets first char attr)
+                win.addch(i, 0, ' ')
             
             ret.append(s)
             
+            ii += 1
             i += 1
             sy += 1
             
@@ -216,6 +243,7 @@ def show_timeline(tl, win, Y, X, starty = 2):
         if sy >= Y:
             break
     
+    win.attrset(0)
     win.refresh()
     
     return ret
@@ -233,17 +261,20 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
     
     while True:
         (ny, nx) = win.getyx()
+        attr = win.inch(ny, 0) & 0xffffff00
         selstr = win.instr(ny, 0)
         
         if ny < maxy - 1:
-            win.addstr(ny, 0, selstr, curses.A_STANDOUT)
+            win.addstr(ny, 0, selstr,
+                       attr | curses.A_STANDOUT)
         else:
-            win.addstr(ny, 0, selstr[:len(selstr) - 1], curses.A_STANDOUT)
+            win.addstr(ny, 0, selstr[:len(selstr) - 1],
+                       attr | curses.A_STANDOUT)
         
         win.move(ny, 0)
         win.refresh()
         (ty, tx) = win.getyx()
-
+        
         curses.flushinp()
         c = stdcur.getch(0, 7)
 
@@ -360,12 +391,13 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
         else:
             continue
         
+        attr = (win.inch(ny, 0) & 0xffffff00) ^ curses.A_STANDOUT
         selstr = win.instr(ny, 0)
         
         if ny < maxy - 1:
-            win.addstr(ny, 0, selstr, curses.A_NORMAL)
+            win.addstr(ny, 0, selstr, attr)
         else:
-            win.addstr(ny, 0, selstr[:len(selstr) - 1], curses.A_NORMAL)
+            win.addstr(ny, 0, selstr[:len(selstr) - 1], attr)
         
         win.move(ny + v, 0)
         
