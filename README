@@ -5,9 +5,36 @@
 ** Require
 - python
 -- python-twitter
+    (suggest >= 0.6)
+
+Debian, Ubuntu
+  $ sudo aptitude install python-twitter
+Fedora
+  $ su -
+  # yum install python-twitter
 
 ** Setting up
 - Edit config.py
 - Run twittext
+
+For example...
+  $ cp config.py.sample config.py
+  $ vi config.py
+  $ ./twittext
+
+** How to use?
+- Press Enter to post status mode.
+- Press Keydown to timeline select mode.
+
+** Command key
+- r : Reload timeline
+- @ : Show replies
+- u : Show user timeline
+
+- Timline select mode
+-- Enter: Reply
+-- r : Retweet
+-- d : Destroy
+-- u : Show user timeline
 
 Use at your own risk.

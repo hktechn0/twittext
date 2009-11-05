@@ -67,7 +67,7 @@ def start(stdcur):
         
         stdcur.clear()
         stdcur.addstr(0, 0, "Post?: ")
-        stdcur.addstr(" " * (X - 8), curses.A_STANDOUT)
+        stdcur.addstr(" " * (X - 8), curses.A_UNDERLINE)
         header = " (@%s) [Twittext] =" % USER
         stdcur.addstr(
             1, 0,
