@@ -23,13 +23,13 @@ def start(stdcur):
     curses.use_default_colors()
     force_reload = False
     stdcur.scrollok(0)
-    
+
     while True:
         (Y, X) = stdcur.getmaxyx()
         
         curses.noecho()
         curses.curs_set(0)
-
+        
         stdcur.clear()
         stdcur.addstr(0, 0, "Loading Timeline...")
         stdcur.refresh()
@@ -45,12 +45,11 @@ def start(stdcur):
                 print "Error: Authentication Failed"
                 exit()
             elif e.code / 100 == 5:
-                stdcur.addstr(1, 0, "[Twitter Error (%d)]" % e.code)
+                stdcur.addstr(1, 0, "Error: Twitter over capacity...")
+                stdcur.addstr(2, 0, "Press any key to continue.")
+                stdcur.refresh()
+                stdcur.getch()
                 continue
-            else:
-                curses.endwin()
-                print "Error: %s", e
-                exit()
         except urllib2.URLError:
             curses.endwin()
             print "Error: Can't connect twitter."
@@ -94,12 +93,21 @@ def start(stdcur):
             repwin = stdcur.subwin(2, 0)
             repwin.clear()
 
-            reps = api.GetReplies()
-            rep_list = show_timeline(reps, repwin, Y, X, 0)
+            try:
+                reps = api.GetReplies()
+                rep_list = show_timeline(reps, repwin, Y, X, 0)
 
-            repwin.move(0, 0)
-            repwin.refresh()
-            postmsg = post_select_mode(rep_list, repwin, stdcur, Y, X)
+                repwin.move(0, 0)
+                repwin.refresh()
+                postmsg = post_select_mode(rep_list, repwin, stdcur, Y, X)
+            except urllib2.HTTPError, e:
+                if e.code / 100 == 5:
+                    stdcur.clear()
+                    stdcur.addstr(1, 0, "Error: Twitter over capacity...")
+                    stdcur.addstr(2, 0, "Press any key to continue.")
+                    stdcur.refresh()
+                    stdcur.getch()
+                    continue
         elif c == 0x75: # u
             # show user status
             curses.echo()
@@ -111,29 +119,34 @@ def start(stdcur):
             
             usrwin = stdcur.subwin(2, 0)
             usrwin.clear()
-            
-            try:
-                usrtl = api.GetUserTimeline(username)
-            except urllib2.HTTPError, e:
-                stdcur.clear()
-                
-                if e.code == 404:
-                    errmsg = "Error: Oops! User \"@%s\" Not Found..." % username
-                else:
-                    errmsg = "Error: Twitter Error. (%d)" % e.code
 
-                stdcur.addstr(0, 0, errmsg)                              
-                stdcur.addstr(1, 0,
-                              "Press any key to continue.")
-                stdcur.refresh()
-                stdcur.getch()
-                continue
+            try:
+                try:
+                    usrtl = api.GetUserTimeline(username)
+                except urllib2.HTTPError, e:
+                    if e.code == 404:
+                        stdcur.clear()
+                        stdcur.addstr(0, 0, 
+                                      "Error: User @%s NotFound..." % username)
+                        stdcur.addstr(1, 0, "Press any key to continue.")
+                        stdcur.refresh()
+                        stdcur.getch()
+                        continue
             
-            usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
-            
-            usrwin.move(0, 0)
-            usrwin.refresh()
-            postmsg = post_select_mode(usr_list, usrwin, stdcur, Y, X)
+                usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
+
+                usrwin.move(0, 0)
+                usrwin.refresh()
+                postmsg = post_select_mode(usr_list, usrwin, stdcur, Y, X)
+            except urllib2.HTTPError, e:
+                if e.code / 100 == 5:
+                    stdcur.clear()
+                    stdcur.addstr(1, 0, "Error: Twitter over capacity...")
+                    stdcur.addstr(2, 0, "Press any key to continue.")
+                    stdcur.refresh()
+                    stdcur.getch()
+                    continue
+        
         elif c == 0x71: # q
             # quit
             exit()
@@ -164,10 +177,8 @@ def start(stdcur):
                     ret = api.PostUpdate(postmsg[:140])
             except urllib2.HTTPError, e:
                 if e.code / 100 == 5:
-                    stdcur.addstr(1, 0, 
-                                  "Error: Twitter over capacity...")
-                    stdcur.addstr(2, 0,
-                                  "Press any key to continue.")
+                    stdcur.addstr(1, 0, "Error: Twitter over capacity...")
+                    stdcur.addstr(2, 0, "Press any key to continue.")
                     stdcur.refresh()
                     stdcur.getch()
         
@@ -184,8 +195,7 @@ def show_timeline(tl, win, Y, X, starty = 2):
     
     for s in tl:
         win.addstr(
-            i, 0, "[%7s] " % (
-                s.user.screen_name[0:7]))
+            i, 0, "[%7s] " % (s.user.screen_name[0:7]))
         
         sss = split_text(s.text, X - 10)
         
@@ -263,7 +273,8 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
                 continue
 
             curses.echo()
-            stdcur.addstr(0, 0, "Reply: ")            
+            stdcur.addstr(0, 0, "Reply: ")
+            stdcur.clrtoeol()
 
             reply_to = target.id
             
@@ -276,15 +287,16 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
             if not tmpstr == "": # empty reply?
                 replymsg += tmpstr
                 postmsg = (replymsg, reply_to)
- 
+            
             break # this is ok
         elif c == 0x72: # r
             # ReTweet
             if target == None:
                 continue
-
+            
             curses.echo()
             stdcur.addstr(0, 0, "ReTweet: ")
+            stdcur.clrtoeol()
             
             reply_to = target.id
             
@@ -292,9 +304,11 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
             tmpstr = stdcur.getstr(0, 9).decode('utf-8')
             
             if tmpstr == "":
-                rtmsg = "RT @%s: %s" % (target.user.screen_name, target.text)
+                rtmsg = "RT @%s: %s" % (
+                    target.user.screen_name, target.text)
             else:
-                rtmsg = "%s RT @%s: %s" % (tmpstr, target.user.screen_name, target.text)
+                rtmsg = "%s RT @%s: %s" % (
+                    tmpstr, target.user.screen_name, target.text)
             
             stdcur.move(0, 0)
             stdcur.clrtoeol()
@@ -332,15 +346,14 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
             if not stdcur.getch(0, 11) == 0x6e: # n
                 try:
                     api.DestroyStatus(target.id)
-                except urllib2.HTTPError:
-                    stdcur.clear()
-                    stdcur.addstr(0, 0, 
-                                  "Error: Oops! Can't Destroy...")
-                    stdcur.addstr(1, 0,
-                                  "Press any key to continue.")
-                    stdcur.refresh()
-                    stdcur.getch()
-
+                except urllib2.HTTPError, e:
+                    if e.code == 403:
+                        stdcur.clear()
+                        stdcur.addstr(0, 0, "Error: Oops! Can't Destroy...")
+                        stdcur.addstr(1, 0, "Press any key to continue.")
+                        stdcur.refresh()
+                        stdcur.getch()
+            
             break # this is ok
         elif c == 0x1b: # Esc
             break
@@ -373,7 +386,7 @@ def split_text(s, w):
             i += 1
         else:
             i += 2
-
+        
         ss += c
         
         if i >= w - 1:
@@ -387,12 +400,8 @@ def split_text(s, w):
     
     if not ss == "":
         sss.append(ss)
-
+    
     return sss
-
-def debug_print(txt):
-    curses.endwin()
-    print txt
 
 def quit_me(signum = None, frame = None):
     exit()
