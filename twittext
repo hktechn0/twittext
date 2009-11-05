@@ -112,7 +112,23 @@ def start(stdcur):
             usrwin = stdcur.subwin(2, 0)
             usrwin.clear()
             
-            usrtl = api.GetUserTimeline(username)
+            try:
+                usrtl = api.GetUserTimeline(username)
+            except urllib2.HTTPError, e:
+                stdcur.clear()
+                
+                if e.code == 404:
+                    errmsg = "Error: Oops! User \"@%s\" Not Found..." % username
+                else:
+                    errmsg = "Error: Twitter Error. (%d)" % e.code
+
+                stdcur.addstr(0, 0, errmsg)                              
+                stdcur.addstr(1, 0,
+                              "Press any key to continue.")
+                stdcur.refresh()
+                stdcur.getch()
+                continue
+            
             usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
             
             usrwin.move(0, 0)
