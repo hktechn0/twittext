@@ -7,14 +7,14 @@
 ##################################################
 
 import twitter
-import curses
-import curses.wrapper
-import curses.textpad
+import curses, curses.wrapper
 import locale
 import signal
 import urllib2
 import string
 import sys
+import re
+import htmlentitydefs
 
 # config file
 from config import *
@@ -261,8 +261,8 @@ def show_timeline(tl, win, Y, X, starty = 2):
             win.attrset(0)
             
         win.addstr(i, 0, "[%7s] " % (s.user.screen_name[0:7]))
-        
-        sss = split_text(s.text, X - 10)
+
+        sss = split_text(replace_htmlentity(s.text), X - 10)
 
         ii = 0
         for ss in sss:
@@ -490,8 +490,23 @@ def split_text(s, w):
     
     return sss
 
+def replace_htmlentity(string):
+    amp = string.find('&')
+    if amp == -1:
+        return string
+    
+    entity = re.compile("&([A-Za-z]+);")
+    entity_match = entity.findall(string)
+
+    for name in entity_match:
+        c = htmlentitydefs.name2codepoint[name]
+        string = string.replace("&%s;" % name, unichr(c))
+    
+    return string
+
 def quit_me(signum = None, frame = None):
     exit()
+
 
 signal.signal(signal.SIGINT, quit_me)
 locale.setlocale(locale.LC_ALL, "")
