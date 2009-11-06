@@ -3,9 +3,9 @@
 
 import twitter
 
-from config import *
+execfile("config.py")
 
-DEBUG = True
+DEBUG = False
 
 api = twitter.Api(username = USER, password = PASS)
 me = api.GetUser(USER)
@@ -29,6 +29,9 @@ while True:
     if me.friends_count > len(followers):
         followers.extend(api.GetFollowers(page = i))
 
+    if DEBUG:
+        print len(following), len(followers)
+
     if ((already_get_ing == len(following))
         and (already_get_ers == len(followers))):
         break
@@ -36,9 +39,6 @@ while True:
         already_get_ing = len(following)
         already_get_ers = len(followers)
         i += 1
-
-        if DEBUG:
-            print len(following), len(followers)
 
 print "Get Following: %d" % len(following)
 print "Get Followers: %d" % len(followers)
