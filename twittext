@@ -14,6 +14,7 @@ import locale
 import signal
 import urllib2
 import string
+import sys
 
 # config file
 from config import *
@@ -49,11 +50,11 @@ def start(stdcur):
         except urllib2.HTTPError, e:
             if e.code == 401:
                 curses.endwin()
-                print "Error: Authentication Failed"
+                sys.stderr.write("Error: Authentication Failed\n")
                 exit()
             elif e.code == 400:
                 curses.endwin()
-                print "Error: Twitter API Rate Limit."
+                sys.stderr.write("Error: Twitter API Rate Limit.\n")
                 exit()
             elif e.code / 100 == 5:
                 stdcur.addstr(1, 0, "Error: Twitter over capacity...")
@@ -65,7 +66,7 @@ def start(stdcur):
                 raise e
         except urllib2.URLError:
             curses.endwin()
-            print "Error: Can't connect twitter."
+            sys.stderr.write("Error: Can't connect twitter.\n")
             exit()
         
         if force_reload:
@@ -105,19 +106,29 @@ def start(stdcur):
             # show replies
             repwin = stdcur.subwin(2, 0)
             repwin.clear()
-
+            repwin.addstr(0, 0, "Get Replies...")
+            repwin.refresh()
+            
             try:
                 reps = api.GetReplies()
+                repwin.clear()
                 rep_list = show_timeline(reps, repwin, Y, X, 0)
-
+                
                 repwin.move(0, 0)
                 repwin.refresh()
                 postmsg = post_select_mode(rep_list, repwin, stdcur, Y, X)
             except urllib2.HTTPError, e:
-                if e.code / 100 == 5:
+                if e.code == 400:
                     stdcur.clear()
-                    stdcur.addstr(1, 0, "Error: Twitter over capacity...")
-                    stdcur.addstr(2, 0, "Press any key to continue.")
+                    stdcur.addstr(0, 0, "Error: Twitter API Rate Limit...")
+                    stdcur.addstr(1, 0, "Press any key to continue.")
+                    stdcur.refresh()
+                    stdcur.getch()
+                    continue
+                elif e.code / 100 == 5:
+                    stdcur.clear()
+                    stdcur.addstr(0, 0, "Error: Twitter over capacity...")
+                    stdcur.addstr(1, 0, "Press any key to continue.")
                     stdcur.refresh()
                     stdcur.getch()
                     continue
@@ -134,6 +145,8 @@ def start(stdcur):
             
             usrwin = stdcur.subwin(2, 0)
             usrwin.clear()
+            usrwin.addstr(0, 0, "Get @%s Timeline..." % username)
+            usrwin.refresh()
 
             try:
                 try:
@@ -149,14 +162,22 @@ def start(stdcur):
                         continue
                     else:
                         raise e
-            
+                
+                usrwin.clear()            
                 usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
 
                 usrwin.move(0, 0)
                 usrwin.refresh()
                 postmsg = post_select_mode(usr_list, usrwin, stdcur, Y, X)
             except urllib2.HTTPError, e:
-                if e.code / 100 == 5:
+                if e.code == 400:
+                    stdcur.clear()
+                    stdcur.addstr(1, 0, "Error: Twitter API Rate Limit...")
+                    stdcur.addstr(2, 0, "Press any key to continue.")
+                    stdcur.refresh()
+                    stdcur.getch()
+                    continue
+                elif e.code / 100 == 5:
                     stdcur.clear()
                     stdcur.addstr(1, 0, "Error: Twitter over capacity...")
                     stdcur.addstr(2, 0, "Press any key to continue.")
@@ -178,13 +199,14 @@ def start(stdcur):
         
         stdcur.clear()
         curses.noecho()
-
-        stdcur.addstr(0, 0, "Posting Status...")
         stdcur.refresh()
-        
+       
         if not postmsg == None and not postmsg == "":
             api.SetCacheTimeout(0)
             force_reload = True
+
+            stdcur.addstr(0, 0, "Posting Status...")
+            stdcur.refresh()
             
             try:
                 if isinstance(postmsg, tuple):
@@ -197,16 +219,24 @@ def start(stdcur):
                 else:
                     postmsg += FOOTER
                     ret = api.PostUpdate(postmsg[:140])
+
+                stdcur.clear()
+                stdcur.refresh()
             except urllib2.HTTPError, e:
-                if e.code / 100 == 5:
+                if e.code == 400:
+                    stdcur.addstr(1, 0, "Error: Twitter API Rate Limit...")
+                    stdcur.addstr(2, 0, "Press any key to continue.")
+                    stdcur.refresh()
+                    stdcur.getch()
+                    continue
+                elif e.code / 100 == 5:
                     stdcur.addstr(1, 0, "Error: Twitter over capacity...")
                     stdcur.addstr(2, 0, "Press any key to continue.")
                     stdcur.refresh()
                     stdcur.getch()
+                    continue
                 else:
                     raise e
-        
-        stdcur.clear()
 
 def show_timeline(tl, win, Y, X, starty = 2):
     ret = []
@@ -371,8 +401,12 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
 
             usrwin = stdcur.subwin(2, 0)
             usrwin.clear()
+            usrwin.addstr(0, 0,
+                          "Get @%s Timeline..." % target.user.screen_name)
+            usrwin.refresh()
             
             usrtl = api.GetUserTimeline(target.user.id)
+            usrwin.clear()
             usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
             
             usrwin.move(0, 0)
@@ -388,8 +422,12 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
             stdcur.move(0, 0)
             stdcur.clrtoeol()
             stdcur.addstr(0, 0, "Destroy? (Y/n): ")
-            
+         
             if not stdcur.getch(0, 11) == 0x6e: # n
+                stdcur.clear()
+                stdcur.addstr(0, 0, "Waiting...")
+                stdcur.refresh()
+                
                 try:
                     api.DestroyStatus(target.id)
                 except urllib2.HTTPError, e:
