@@ -41,14 +41,19 @@ def start(stdcur):
         stdcur.refresh()
         
         try:
-            tl = api.GetFriendsTimeline(count = (Y - 2))
-        except TypeError:
-            # for old version api
-            tl = api.GetFriendsTimeline()
+            if pytw_ver >= 0.6:
+                tl = api.GetFriendsTimeline(count = (Y - 2))
+            else:
+                # for old version api
+                tl = api.GetFriendsTimeline()
         except urllib2.HTTPError, e:
             if e.code == 401:
                 curses.endwin()
                 print "Error: Authentication Failed"
+                exit()
+            elif e.code == 400:
+                curses.endwin()
+                print "Error: Twitter API Rate Limit."
                 exit()
             elif e.code / 100 == 5:
                 stdcur.addstr(1, 0, "Error: Twitter over capacity...")
@@ -56,6 +61,8 @@ def start(stdcur):
                 stdcur.refresh()
                 stdcur.getch()
                 continue
+            else:
+                raise e
         except urllib2.URLError:
             curses.endwin()
             print "Error: Can't connect twitter."
@@ -114,6 +121,8 @@ def start(stdcur):
                     stdcur.refresh()
                     stdcur.getch()
                     continue
+                else:
+                    raise e
         elif c == 0x75: # u
             # show user status
             curses.echo()
@@ -138,6 +147,8 @@ def start(stdcur):
                         stdcur.refresh()
                         stdcur.getch()
                         continue
+                    else:
+                        raise e
             
                 usr_list = show_timeline(usrtl, usrwin, Y, X, 0)
 
@@ -152,6 +163,8 @@ def start(stdcur):
                     stdcur.refresh()
                     stdcur.getch()
                     continue
+                else:
+                    raise e
         
         elif c == 0x71: # q
             # quit
@@ -190,6 +203,8 @@ def start(stdcur):
                     stdcur.addstr(2, 0, "Press any key to continue.")
                     stdcur.refresh()
                     stdcur.getch()
+                else:
+                    raise e
         
         stdcur.clear()
 
@@ -384,6 +399,8 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
                         stdcur.addstr(1, 0, "Press any key to continue.")
                         stdcur.refresh()
                         stdcur.getch()
+                    else:
+                        raise e
             
             break # this is ok
         elif c == 0x1b: # Esc
