@@ -262,8 +262,12 @@ def show_timeline(tl, win, Y, X, starty = 2):
             
         win.addstr(i, 0, "[%7s] " % (s.user.screen_name[0:7]))
 
-        sss = split_text(replace_htmlentity(s.text), X - 10)
-
+        raw_str = s.text
+        raw_str = replace_htmlentity(raw_str)
+        raw_str = raw_str.replace(unichr(0x0A), "")
+        raw_str = raw_str.replace(unichr(0x0D), "")
+        sss = split_text(raw_str, X - 10)
+        
         ii = 0
         for ss in sss:
             if sy < Y - 1:
