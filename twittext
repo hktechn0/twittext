@@ -6,15 +6,18 @@
 # - http://www.techno-st.net/wiki/Twittext
 ##################################################
 
+import sys
+import re
 import twitter
 import curses, curses.wrapper
 import locale
 import signal
 import urllib2
 import string
-import sys
-import re
 import htmlentitydefs
+
+# mutibyte input mbgetstr()
+import newinput
 
 # config file
 from config import *
@@ -33,9 +36,6 @@ def start(stdcur):
 
     while True:
         (Y, X) = stdcur.getmaxyx()
-        
-        curses.noecho()
-        curses.curs_set(0)
         
         stdcur.clear()
         stdcur.addstr(0, 0, "Loading Timeline...")
@@ -94,9 +94,7 @@ def start(stdcur):
             postmsg = post_select_mode(tl_list, stdcur, stdcur, Y, X)
         elif c == 0x0a or c == curses.KEY_ENTER: # Enter
             # post status
-            curses.echo()
-            curses.curs_set(1)
-            postmsg = stdcur.getstr(0, 7).decode('utf-8')
+            postmsg = newinput.mbgetstr(stdcur, 0, 7)
         elif c == 0x72: # r
             # force reload
             api.SetCacheTimeout(0)
@@ -136,12 +134,8 @@ def start(stdcur):
                     raise e
         elif c == 0x75: # u
             # show user status
-            curses.echo()
-            curses.curs_set(1)
             stdcur.addstr(0, 0, "User?: @")
-            username = stdcur.getstr(0, 8).decode('utf-8')
-            curses.noecho()
-            curses.curs_set(0)
+            username = newinput.mbgetstr(stdcur, 0, 8)
             
             usrwin = stdcur.subwin(2, 0)
             usrwin.clear()
@@ -198,7 +192,6 @@ def start(stdcur):
             continue
         
         stdcur.clear()
-        curses.noecho()
         stdcur.refresh()
        
         if not postmsg == None and not postmsg == "":
@@ -352,17 +345,14 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
             if target == None:
                 continue
 
-            curses.echo()
             stdcur.addstr(0, 0, "Reply: ")
             stdcur.clrtoeol()
 
             reply_to = target.id
             
             replymsg = "@%s " % target.user.screen_name
-            curses.curs_set(1)
             stdcur.addstr(0, 7, replymsg)
-            tmpstr = stdcur.getstr(
-                0, 7 + len(replymsg)).decode('utf-8')
+            tmpstr = newinput.mbgetstr(stdcur, 0, 7 + len(replymsg))
             
             if not tmpstr == "": # empty reply?
                 replymsg += tmpstr
@@ -374,14 +364,12 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
             if target == None:
                 continue
             
-            curses.echo()
             stdcur.addstr(0, 0, "ReTweet: ")
             stdcur.clrtoeol()
             
             reply_to = target.id
             
-            curses.curs_set(1)
-            tmpstr = stdcur.getstr(0, 9).decode('utf-8')
+            tmpstr = newinput.mbgetstr(stdcur, 0, 9)
             
             if tmpstr == "":
                 rtmsg = "RT @%s: %s" % (
