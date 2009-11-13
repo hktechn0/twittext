@@ -8,7 +8,13 @@ def mbgetstr(stdcur, sety, setx, debug = False):
     i = 0
     
     curses.noecho()
-    curses.curs_set(1)
+
+    # for iTerm fix
+    try:
+        curses.curs_set(1)
+    except:
+        pass
+
     (maxy, maxx) = stdcur.getmaxyx()
     stdcur.move(sety, setx)
 
@@ -91,7 +97,12 @@ def mbgetstr(stdcur, sety, setx, debug = False):
             else:
                 stdcur.move(y, x + 2)
 
-    curses.curs_set(0)
+    # for iTerm fix
+    try:
+        curses.curs_set(0)
+    except:
+        pass
+
     return s
 
 def utf2ucs(utf):
