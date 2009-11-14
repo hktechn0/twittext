@@ -27,6 +27,12 @@ def start(stdcur):
     stdcur.scrollok(0)
     curses.use_default_colors()
 
+    # for iTerm fix
+    try:
+        curses.curs_set(0)
+    except:
+        pass
+
     curses.start_color()
     curses.init_pair(1, curses.COLOR_RED, -1)
     curses.init_pair(2, curses.COLOR_GREEN, -1)
