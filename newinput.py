@@ -6,16 +6,15 @@ import curses
 def mbgetstr(stdcur, sety, setx, debug = False):
     s = u""
     i = 0
-    cc = 0
     
     curses.noecho()
-
+    
     # for iTerm fix
     try:
         curses.curs_set(1)
     except:
         pass
-
+    
     (maxy, maxx) = stdcur.getmaxyx()
     stdcur.move(sety, setx)
 
@@ -33,79 +32,31 @@ def mbgetstr(stdcur, sety, setx, debug = False):
         if c == 0x0a:
             break
         elif c == curses.KEY_BACKSPACE:
-            if x <= setx:
+            if i <= 0:
                 continue
-
-            if isascii(s[i - 1]):
-                x -= 1
-                cc -= 1
-            else:
-                x -= 2
-                cc -= 2
-
+            
             s = s[:i - 1] + s[i:]
             i -= 1
-            
-            stdcur.move(sety, setx)
-            stdcur.clrtoeol()
-
-            if cc + setx > maxx - 1:
-                j = getoffset(s, cc, setx, maxx)
-            else:
-                j = 0
-            
-            stdcur.addstr(s[j:i].encode('utf-8'))
-            (y, x) = stdcur.getyx()
-            stdcur.addstr(s[i:].encode('utf-8'))
-            stdcur.move(y, x)
+            rewrite_text(stdcur, setx, sety, s, i)
         elif c == curses.KEY_DC:
-            if i >= len(s):
-                continue
-
-            if isascii(s[i]):
-                cc -= 1
-            else:
-                cc -= 2
-
             s = s[:i] + s[i + 1:]
-
-            stdcur.move(sety, setx)
-            stdcur.clrtoeol()
-            
-            if cc + setx > maxx - 1:
-                j = getoffset(s, cc, setx, maxx)
-            else:
-                j = 0
-
-            stdcur.addstr(s[j:i].encode('utf-8'))
-            (y, x) = stdcur.getyx()
-            stdcur.addstr(s[i:].encode('utf-8'))
-            stdcur.move(y, x)
+            rewrite_text(stdcur, setx, sety, s, i)
         elif c == curses.KEY_LEFT:
-            if x <= setx:
+            if i <= 0:
                 continue
-            
-            if isascii(s[i - 1]):
-                x -= 1
-            else:
-                x -= 2
             
             i -= 1
-            stdcur.move(y, x)
+            rewrite_text(stdcur, setx, sety, s, i)
         elif c == curses.KEY_RIGHT:
             if i >= len(s):
                 continue
             
-            if isascii(s[i]):
-                x += 1
-            else:
-                x += 2
-            
             i += 1
-            stdcur.move(y, x)
+            rewrite_text(stdcur, setx, sety, s, i)
         elif curses.KEY_MIN <= c <= curses.KEY_MAX:
             pass
         else:
+            # UTF-8 input
             if c & 0x80:
                 f = c << 1
                 while f & 0x80:
@@ -120,26 +71,7 @@ def mbgetstr(stdcur, sety, setx, debug = False):
             
             s = s[:i] + c + s[i:]
             i += 1
-            
-            if isascii(c):
-                cursor = 1
-                cc += 1
-            else:
-                cursor = 2
-                cc += 2
-            
-            if cc + setx > maxx - 1:
-                stdcur.move(sety, setx)
-                stdcur.clrtoeol()
-                j = getoffset(s, cc, setx, maxx)
-                
-                stdcur.addstr(s[j:i].encode('utf-8'))
-                (y, x) = stdcur.getyx()
-                stdcur.addstr(s[i:].encode('utf-8'))
-                stdcur.move(y, x)
-            else:
-                stdcur.insstr(c.encode('utf-8'))
-                stdcur.move(y, x + cursor)
+            rewrite_text(stdcur, setx, sety, s, i)
     
     # for iTerm fix
     try:
@@ -180,6 +112,7 @@ def isprintable(c):
     else:
         return False
 
+# no use....
 def getoffset(s, cc, setx, maxx):
     w = 0
     j = 0
@@ -197,6 +130,62 @@ def getoffset(s, cc, setx, maxx):
 
     return j
 
+# no use...
+def cw_count(string):
+    cnt = 0
+
+    for c in string:
+        if isascii(c):
+            cnt += 1
+        else:
+            cnt += 2
+    
+    return cnt
+
+# Extract string by width
+def exstr_width(string, cnt):
+    width = 0
+    i = 0
+
+    for c in string:
+        if isascii(c):
+            width += 1
+        else:
+            width += 2
+
+        if width >= cnt:
+            break
+        else:
+            i += 1
+
+    return string[:i]
+
+def rewrite_text(stdcur, setx, sety, s, i):
+    (maxy, maxx) = stdcur.getmaxyx()
+    (os, oe) = rewrite_text.old
+
+    stdcur.move(sety, setx)
+    stdcur.clrtoeol()
+
+    if os <= i <= oe:
+        stdcur.addstr(s[os:i].encode('utf-8'))
+        (y, x) = stdcur.getyx()
+        exstr = exstr_width(s[i:], maxx - x)
+        stdcur.addstr(exstr.encode('utf-8'))
+        stdcur.move(y, x)
+        rewrite_text.old = (os, i + len(exstr))
+    else:
+        if i < os:
+            exstr = exstr_width(s[i:], maxx - setx)
+            rewrite_text.old = (i, i + len(exstr))
+            stdcur.addstr(exstr.encode('utf-8'))
+            stdcur.move(sety, setx)
+        else:
+            exstr = exstr_width(s[i - 1::-1], maxx - setx)
+            exstr = exstr[::-1]
+            rewrite_text.old = (i - len(exstr), i)
+            stdcur.addstr(exstr.encode('utf-8'))
+
 def _test(stdcur):
     curses.use_default_colors()
     stdcur.addstr(0, 0, "=== Mutibyte getstr() Test ===")
@@ -205,6 +194,9 @@ def _test(stdcur):
     s = mbgetstr(stdcur, 1, 8, True)
     stdcur.addstr(2, 0, s.encode("utf-8"))
     stdcur.getch()
+
+# init
+rewrite_text.old = (-1, -1)
 
 if __name__ == '__main__':
     import locale
