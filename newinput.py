@@ -130,6 +130,7 @@ def getoffset(s, cc, setx, maxx):
 
     return j
 
+# Character width count
 # no use...
 def cw_count(string):
     cnt = 0
@@ -181,7 +182,8 @@ def rewrite_text(stdcur, setx, sety, s, i):
             stdcur.addstr(exstr.encode('utf-8'))
             stdcur.move(sety, setx)
         else:
-            exstr = exstr_width(s[i - 1::-1], maxx - setx)
+            exstr = exstr_width(s[i - 1::-1], cw_count(s[os:oe]) + 3)
+            exstr = exstr_width(exstr, maxx - setx)
             exstr = exstr[::-1]
             rewrite_text.old = (i - len(exstr), i)
             stdcur.addstr(exstr.encode('utf-8'))
