@@ -269,12 +269,12 @@ def show_timeline(tl, win, Y, X, starty = 2):
         
         ii = 0
         for ss in sss:
-            if sy < Y - 1:
-                win.addstr(i, 10, ss.encode("utf-8"))
-            else:
+            if not sy < Y - 1:
                 # lower left char bug fix
-                win.addstr(i, 10, ss[:len(ss) - 1].encode("utf-8"))
-
+                ss = split_text(ss, X - 11)[0]
+            
+            win.addstr(i, 10, ss.encode("utf-8"))
+            
             if ii > 0:
                 # for post_select_mode() (gets first char attr)
                 win.addch(i, 0, ' ')
@@ -464,9 +464,6 @@ def split_text(s, w):
     sss = []
     
     for c in s:
-        if c == "\n":
-            continue
-        
         if 0x00 <= ord(c) <= 0x7f:
             i += 1
         else:
