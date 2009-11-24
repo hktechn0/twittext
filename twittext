@@ -56,11 +56,11 @@ def start(stdcur):
         except urllib2.HTTPError, e:
             if e.code == 401:
                 curses.endwin()
-                sys.stderr.write("Error: Authentication Failed\n")
+                print sys.stderr, "Error: Authentication Failed"
                 exit()
             elif e.code == 400:
                 curses.endwin()
-                sys.stderr.write("Error: Twitter API Rate Limit.\n")
+                print sys.stderr, "Error: Twitter API Rate Limit."
                 exit()
             elif e.code / 100 == 5:
                 stdcur.addstr(1, 0, "Error: Twitter over capacity...")
@@ -72,7 +72,7 @@ def start(stdcur):
                 raise e
         except urllib2.URLError:
             curses.endwin()
-            sys.stderr.write("Error: Can't connect twitter.\n")
+            print sys.stderr, "Error: Can't connect twitter."
             exit()
         
         if force_reload:
