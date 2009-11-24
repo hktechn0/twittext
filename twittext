@@ -56,11 +56,11 @@ def start(stdcur):
         except urllib2.HTTPError, e:
             if e.code == 401:
                 curses.endwin()
-                print sys.stderr, "Error: Authentication Failed"
+                print >>sys.stderr, "Error: Authentication Failed"
                 exit()
             elif e.code == 400:
                 curses.endwin()
-                print sys.stderr, "Error: Twitter API Rate Limit."
+                print >>sys.stderr, "Error: Twitter API Rate Limit."
                 exit()
             elif e.code / 100 == 5:
                 stdcur.addstr(1, 0, "Error: Twitter over capacity...")
@@ -72,7 +72,7 @@ def start(stdcur):
                 raise e
         except urllib2.URLError:
             curses.endwin()
-            print sys.stderr, "Error: Can't connect twitter."
+            print >>sys.stderr, "Error: Can't connect twitter."
             exit()
         
         if force_reload:
@@ -260,11 +260,10 @@ def show_timeline(tl, win, Y, X, starty = 2):
             win.attrset(0)
             
         win.addstr(i, 0, "[%7s] " % (s.user.screen_name[0:7]))
-
+        
         raw_str = s.text
         raw_str = replace_htmlentity(raw_str)
-        raw_str = raw_str.replace(unichr(0x0A), "")
-        raw_str = raw_str.replace(unichr(0x0D), "")
+        raw_str = delete_notprintable(raw_str)
         sss = split_text(raw_str, X - 10)
         
         ii = 0
@@ -498,6 +497,16 @@ def replace_htmlentity(string):
         string = string.replace("&%s;" % name, unichr(c))
     
     return string
+
+def delete_notprintable(string):
+    s = ""
+
+    for c in string:
+        if (not(0x00 <= ord(c) <= 0x7f)
+            or 0x20 <= ord(c) <= 0x7e):
+            s += c
+
+    return s
 
 def quit_me(signum = None, frame = None):
     exit()
