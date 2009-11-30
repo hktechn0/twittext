@@ -391,7 +391,7 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
                 postmsg = rtmsg
  
             break # this is ok
-        elif c == 0x75: # u
+        elif c == 0x75 or c == curses.KEY_RIGHT: # u
             # show user timeline
             if target == None:
                 continue
@@ -438,7 +438,8 @@ def post_select_mode(tl_list, win, stdcur, Y, X):
                         raise e
             
             break # this is ok
-        elif c == 0x1b: # Esc
+        elif (c == 0x1b or c == curses.KEY_LEFT or
+              c == curses.KEY_BACKSPACE): # Esc, <=, BS
             break
         else:
             continue
