@@ -3,21 +3,20 @@
 
 import curses
 
-def mbgetstr(stdcur, sety, setx, debug = False):
+def mbgetstr(stdcur, sety = None, setx = None, debug = False):
     s = u""
     i = 0
     
     curses.noecho()
-    
-    # for iTerm fix
-    try:
-        curses.curs_set(1)
-    except:
-        pass
+    curses.curs_set(1)
     
     (maxy, maxx) = stdcur.getmaxyx()
-    stdcur.move(sety, setx)
 
+    if sety == None and setx == None:
+        (sety, setx) = stdcur.getyx()
+    else:
+        stdcur.move(sety, setx)
+    
     while True:
         (y, x) = stdcur.getyx()
         
@@ -73,11 +72,7 @@ def mbgetstr(stdcur, sety, setx, debug = False):
             i += 1
             rewrite_text(stdcur, setx, sety, s, i)
     
-    # for iTerm fix
-    try:
-        curses.curs_set(0)
-    except:
-        pass
+    curses.curs_set(0)
 
     return s
 
