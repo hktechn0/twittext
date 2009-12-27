@@ -12,6 +12,10 @@ import twoauth
 import os
 import locale
 import ConfigParser
+import signal
+
+def quit_me(signum = None, frame = None):
+    exit()
 
 if __name__ == "__main__":
     config_default = {
@@ -46,6 +50,8 @@ if __name__ == "__main__":
     settings = dict(conf.items("DEFAULT"))
     user = dict(conf.items(settings["default_user"]))
     
+    signal.signal(signal.SIGINT, quit_me)
+
     # Start
     twittext(settings["ckey"], settings["csecret"],
              user["atoken"], user["asecret"])
