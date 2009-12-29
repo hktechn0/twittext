@@ -1,40 +1,67 @@
-* Twittext
-- Simple text-based twitter client
-- http://www.techno-st.net/wiki/
+************************************************************
+ - Twittext [v0.5]
+ -- Simple test-based Twitter Client
 
-** Require
-- python
--- python-twitter
-    (suggest >= 0.6)
+ -- Hirotaka Kawata <info@techno-st.net>
+ -- http://www.techno-st.net/wiki/Twittext
+************************************************************
 
-Debian, Ubuntu
-  $ sudo aptitude install python-twitter
-Fedora
-  $ su -
-  # yum install python-twitter
+- Licence
+-- GPLv3
+-- Copyright (C) 2009 Hirotaka Kawata
 
-** Setting up
-- Edit config.py
-- Run twittext
+- Require
+-- Python (>= 2.5)
+-- (python-twoauth - included twoauth/)
 
-For example...
-  $ cp config.py.sample config.py
-  $ vi config.py
-  $ ./twittext
+- Setup
+1. Run ./twittext
+2. Access to the authorize URL
+3. Login to Twitter to get PIN
+4. Please input PIN to console
+5. You can see "Home Timeline"
 
-** How to use?
-- Press Enter to post status mode.
-- Press Keydown to timeline select mode.
+- How to use
+This program has 2 modes.
+* Command Mode
+* Status Selection Mode
+If you just started this program, running command mode.
 
-** Command key
-- r : Reload timeline
-- @ : Show replies
-- u : Show user timeline
+== Command Mode ==
+Enter - Update status
+h Key - Show (Update) Home Timeline
+@ Key - Show mentions
+r Key - Show retweets
+p Key - Show public timeline
+u Key - Show user timeline
+f Key - Friendship check
+q Key - Quit
+Key Down
+      - To Status Selection Mode
 
-- Timline select mode
--- Enter: Reply
--- r : Retweet
--- d : Destroy
--- u : Show user timeline
+== Status Selection Mode ==
+@ Key - Reply
+r Key - Retweet (Using retweet API method)
+q Key - Quote tweet
+u Key - User timeline
+U Key - Reply_to user timeline
+d Key - Destroy status
+f Key - Friendship check
+Key Left (<=)
+      - Return to Command Mode
 
-Use at your own risk.
+== Key alias ==
+Space -> Updte Home Timeline
+Key Right -> Updte Home Timeline
+
+Enter -> Reply
+Escape -> To Command Mode
+Backspace -> To Command Mode
+
+
+- Notice
+* Reload home_timeline every 60 secs (by default)
+* If you add status footer, see settings.conf and edit.
+
+- Bug Report
+* Send to <info@techno-st.net>
