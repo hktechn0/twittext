@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+#
+# Twittext - tools.py
+# - Hirotaka Kawata <info@techno-st.net>
+# - http://www.techno-st.net/wiki/Twittext
+#
+
+import re
+import htmlentitydefs
+import curses
+import datetime
+import locale
+
 def split_text(s, w):
     i = 0
     ss = ""
@@ -29,9 +41,6 @@ def split_text(s, w):
     return sss
 
 def replace_htmlentity(string):
-    import re
-    import htmlentitydefs
-
     amp = string.find('&')
     if amp == -1:
         return string
@@ -56,8 +65,6 @@ def delete_notprintable(string):
     return s
 
 def attr_select(post, me):
-    import curses
-
     user = post["user"]["screen_name"]
     reply_to = post["in_reply_to_screen_name"]
     myname = me["screen_name"]
@@ -81,9 +88,6 @@ def attr_select(post, me):
     return 0
 
 def twittertime(timestr):
-    import datetime
-    import locale
-
     format = "%a %b %d %H:%M:%S +0000 %Y"
     locale.setlocale(locale.LC_ALL, "C")
     dt = datetime.datetime.strptime(timestr, format)
@@ -94,8 +98,6 @@ def twittertime(timestr):
     return dt
 
 def twitterago(time):
-    import datetime
-
     ago = datetime.datetime.now() - time
 
     hours = ago.seconds / 3600
@@ -140,8 +142,15 @@ def listed_count(api):
     while True:
         lists = api.lists_memberships(cursor = cursor)
         cursor = int(lists["next_cursor"])
+        listed += len(lists["lists"])
         if cursor <= 0:
             break
-        listed += len(lists["lists"])
         
     return listed
+
+def split_user(s, i = 0):
+    match = re.findall("@([0-9A-Za-z_]*)", s)
+    if match:
+        return match[i]
+
+    return None

@@ -1,8 +1,16 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+#
+# Twittext
+# curses.getstr() for UTF-8
+# - Hirotaka Kawata <info@techno-st.net>
+# - http://www.techno-st.net/wiki/Twittext
+#
+
 import curses
 
+# usage: newinput.mbgetstr(win, [y, x])
 def mbgetstr(stdcur, sety = None, setx = None, debug = False):
     s = u""
     i = 0

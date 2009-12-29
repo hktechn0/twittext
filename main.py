@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+#
+# Twittext - main.py
+# - Hirotaka Kawata <info@techno-st.net>
+# - http://www.techno-st.net/wiki/Twittext
+#
+
 import twoauth
 
 from tools import *
@@ -8,18 +14,26 @@ from tools import *
 import curses
 import locale
 import datetime
+import urllib2
+import httplib
 
 class twittext():
     def __init__(self, ckey, csecret, atoken, asecret):
+        locale.setlocale(locale.LC_ALL, "")
+
         # twitter api instance
         self.api = twoauth.api(
             ckey, csecret, atoken, asecret)
+        self.userlastget = datetime.datetime.now()
 
         # init temporary stack
         self.tmp = []
-
+        
+        self.statusfooter = ""
+        self.autoreload = 60000 # ms        
+    
+    def run(self):
         # start curses
-        locale.setlocale(locale.LC_ALL, "")
         curses.wrapper(self.start)
     
     def start(self, stdcur):
@@ -33,7 +47,7 @@ class twittext():
         curses.start_color()
         curses.init_pair(1, curses.COLOR_RED, -1)
         curses.init_pair(2, curses.COLOR_GREEN, -1)
-        curses.init_pair(3, curses.COLOR_BLUE, -1)
+        curses.init_pair(3, curses.COLOR_CYAN, -1)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLUE)
 
         # create subwin
@@ -57,59 +71,101 @@ class twittext():
         self.footwin.bkgd(" ", curses.color_pair(4))
         self.footwin.attrset(curses.color_pair(4))
 
-        # show timeline
-        self.mode = 0
-        while self.home(): pass;
+        self.listed = listed_count(self.api)
 
+        self.mode = 0
+        self.stdcur.timeout(self.autoreload)
+
+        while True:
+            try:
+                # show timeline
+                while self.home(): pass;
+                break
+            except urllib2.HTTPError, e:
+                # Twitter over capacity
+                if e.code / 100 == 5:
+                    message = "Twitter Over Capacity..."
+                elif e.code == 400:
+                    message = "Twitter REST API Rate Limited!"
+                elif e.code == 404:
+                    message = "Not Found..."
+                elif e.code == 403:
+                    message = "Access Forbidden!"
+                else:
+                    raise
+
+                self.mode = 0
+                self.stdcur.addstr(
+                    0, 0,
+                    "[Error] %s" % message,
+                    curses.color_pair(1) | curses.A_BOLD)
+                self.stdcur.clrtoeol()
+                self.stdcur.getch()
+            except httplib.BadStatusLine:
+                self.mode = 0
+                self.stdcur.addstr(
+                    0, 0,
+                    "[Error] HTTP Error",
+                    curses.color_pair(1) | curses.A_BOLD)
+                self.stdcur.clrtoeol()
+                self.stdcur.getch()
+    
     def home(self):
         if self.mode >= 0:
             self.headwin.clear()
         self.footwin.clear()
-
+        
         # Header
-        limit = self.api.rate_limit()
-        (lnow, lmax) = (limit["remaining-hits"], limit["hourly-limit"])
         header = "%d/%d (@%s) [Twittext]" % (
-            int(lnow), int(lmax), self.api.user["screen_name"])
+            self.api.ratelimit_remaining,
+            self.api.ratelimit_limit,
+            self.api.user["screen_name"])
         self.headwin.addstr(0, self.X - len(header) - 1, header)
-
-        # Footer init
-        me = self.api.verify_credentials()
-        listed = listed_count(self.api)
-
+        
         # Footer
-        userinfo = "Total: %s tweets, Following: %s, Followers %s, Listed: %d" % (
-            me["statuses_count"], me["friends_count"], me["followers_count"], listed)
+        if (self.userlastget - datetime.datetime.now()).seconds > 300:
+            me = self.api.user_show(self.api.user["screen_name"])
+            self.api.user = me
+            self.userlastget = datetime.datetime.now()
+        else:
+            me = self.api.user
+        
+        userinfo = """\
+Total: %s tweets, \
+Following: %s, Followers %s, \
+Listed: %d""" % (
+            me["statuses_count"], 
+            me["friends_count"], me["followers_count"],
+            self.listed)
         self.footwin.addstr(0, 0, userinfo)
-
-        self.stdcur.addstr(0, 0, "Loading...")
-        self.stdcur.clrtoeol()
-        self.stdcur.refresh()
 
         # timeline mode
         if self.mode == 0:
-            self.headwin.addstr(0, 0, "[Home Timeline]")
+            self.loading("Home Timeline")
             self.tl = self.api.home_timeline(count = self.Y)
         elif self.mode == 1:
-            self.headwin.addstr(0, 0, "[Tweets mentioning @%s]" % 
-                                (self.api.user["screen_name"]))
+            self.loading("Tweets mentioning @%s" % 
+                         (self.api.user["screen_name"]))
             self.tl = self.api.mentions(count = self.Y)
         elif self.mode == 2:
             tluser = self.tmp.pop()
-            self.headwin.addstr(0, 0, "[@%s Timeline]" % tluser)
+            self.loading("@%s Timeline" % tluser)
             self.tl = self.api.user_timeline(tluser, count = self.Y)
         elif self.mode == 3:
             m = self.tmp.pop()
             if m == 1:
-                self.headwin.addstr(0, 0, "[Retweets by others]")
+                self.loading("Retweets by others")
                 self.tl = self.api.rt_to_me(count = self.Y)
             elif m == 2:
-                self.headwin.addstr(0, 0, "[Retweets by you]")
+                self.loading("Retweets by you")
                 self.tl = self.api.rt_by_me(count = self.Y)
             elif m == 3:
-                self.headwin.addstr(0, 0, "[Your tweets, retweeted]")
+                self.loading("Your tweets, retweeted")
                 self.tl = self.api.rt_of_me(count = self.Y)
-
+        elif self.mode == 4:
+            self.loading("Public Timeline")
+            self.tl = self.api.public_timeline(count = self.Y)
+        
         # print header
         self.stdcur.addstr(0, 0, "Post?: ")
         self.stdcur.addstr(" " * (self.X - 8), curses.A_UNDERLINE)
@@ -145,18 +201,22 @@ class twittext():
                 user = self.getstr()
                 self.tmp.append(user)
                 self.mode = 2
+            elif key == ord("p"):
+                # Public Timeline
+                self.mode = 4
             elif key == ord("r"):
                 # Retweet
                 self.stdcur.addstr(
-                    0, 0, "1: Retweets by others, 2: Retweets by you, 3: Your tweets, retweeted")
+                    0, 0, """\
+1: Retweets by others, \
+2: Retweets by you, \
+3: Your tweets, retweeted""")
                 self.stdcur.clrtoeol()
 
-                n = -1
-                while n not in (1, 2, 3):
+                if self.stdcur.getch() in (1, 2, 3):
                     n = self.stdcur.getch() - ord("0")
-                
-                self.mode = 3
-                self.tmp.append(n)
+                    self.mode = 3
+                    self.tmp.append(n)
             elif key == ord("f"):
                 # Friendship
                 self.stdcur.addstr(0, 0, "User?: @")
@@ -164,7 +224,7 @@ class twittext():
                 user = self.getstr()
                 self.friendship(user)
                 self.stdcur.getch()
-            elif key in (curses.KEY_LEFT, ord("h"), ord(" ")):
+            elif key in (-1, curses.KEY_LEFT, ord("h"), ord(" ")):
                 # Home Timeline
                 self.mode = 0
             elif key == ord("q"):
@@ -181,13 +241,28 @@ class twittext():
         import newinput
         return newinput.mbgetstr(self.stdcur, *args).encode("utf-8")
     
-    def post(self, status):
+    def post(self, status, error = 0):
         self.stdcur.addstr(0, 0, "Updating Status...")
         self.stdcur.clrtoeol()
         self.stdcur.refresh()
 
-        self.api.status_update(status)
-        self.stdcur.addstr(" OK.")
+        post = "%s %s" % (
+            status,
+            self.statusfooter)
+
+        try:
+            self.api.status_update(post)
+        except urllib2.HTTPError, e:
+            # Twitter over capacity
+            if error > 1:
+                self.stdcur.addstr(" Error.",
+                                   curses.color_pair(1) | curses.A_BOLD)
+            elif e.code / 100 == 5:
+                self.post(status, error + 1)
+            else:
+                raise
+        else:
+            self.stdcur.addstr(" OK.")
     
     def reply(self, status):
         self.stdcur.addstr(0, 0, "Reply: ")
@@ -349,8 +424,9 @@ class twittext():
             ago = twitterago(created_at)
             source = twittersource(lpost[i]["source"])
             # isretweet(lpost[i])
-
-            self.footwin.addstr(0, 0, "[%s] %s from %s" % (puttime, ago, source))
+            
+            footer = "[%s] %s from %s" % (puttime, ago, source.encode("utf-8"))
+            self.footwin.addstr(0, 0, footer)
             self.footwin.clrtoeol()
             
             curses.flushinp()
@@ -368,7 +444,7 @@ class twittext():
 
             if c == curses.KEY_DOWN:
                 # Down
-                if i < Y - 1:
+                if i < Y - 1 and i < len(lpost) - 1:
                     p = 1
             elif c == curses.KEY_UP:
                 # Up
@@ -392,12 +468,23 @@ class twittext():
                     self.mode = 2
                     self.tmp.append(target["user"]["screen_name"])
                     break
+                elif c == ord("U"):
+                    # Show reply_to User Timeline
+                    user = split_user(target["text"])
+                    if user:
+                        self.mode = 2
+                        self.tmp.append(user)
+                        break
+                    else:
+                        continue
                 elif c == ord("d"):
                     # Destroy
                     self.destroy(target)
                 elif c == ord("f"):
                     # Friendship
                     self.friendship(target["user"]["screen_name"])
+                else:
+                    continue
             else:
                 continue
             
@@ -411,3 +498,14 @@ class twittext():
             self.tlwin.refresh()
         
         return
+
+    def loading(self, name):
+        self.tlname = name
+        self.headwin.addstr(0, 0, "[%s]" % name)
+
+        self.tlwin.clear()
+        self.tlwin.refresh()
+        
+        self.stdcur.addstr(0, 0, "Loading...")
+        self.stdcur.clrtoeol()
+        self.stdcur.refresh()

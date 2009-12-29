@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+
+#
+# Twittext - gettoken.py
+# - Hirotaka Kawata <info@techno-st.net>
+# - http://www.techno-st.net/wiki/Twittext
+#
+
 import twoauth
 
 def token(ckey, csecret):

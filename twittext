@@ -35,6 +35,8 @@ if __name__ == "__main__":
             config_default["csecret"])
         
         conf.set("DEFAULT", "default_user", screen_name)
+        conf.set("DEFAULT", "autoreload", 60)
+
         conf.add_section(screen_name)
         conf.set(screen_name, "atoken", atoken)
         conf.set(screen_name, "asecret", asecret)
@@ -45,7 +47,7 @@ if __name__ == "__main__":
         fp.close()
     
     from main import *
-
+    
     conf.read(conf_path)
     settings = dict(conf.items("DEFAULT"))
     user = dict(conf.items(settings["default_user"]))
@@ -53,5 +55,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, quit_me)
 
     # Start
-    twittext(settings["ckey"], settings["csecret"],
-             user["atoken"], user["asecret"])
+    tw = twittext(settings["ckey"], settings["csecret"],
+                  user["atoken"], user["asecret"])
+    tw.statusfooter = user["footer"]
+    tw.autoreload = int(settings["autoreload"]) * 1000
+    tw.run()
