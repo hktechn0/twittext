@@ -55,7 +55,7 @@ if __name__ == "__main__":
             config_default["csecret"])
         
         conf.set("DEFAULT", "default_user", screen_name)
-        conf.set("DEFAULT", "autoreload", 60)
+        conf.set("DEFAULT", "autoreload", "60")
 
         conf.add_section(screen_name)
         conf.set(screen_name, "atoken", atoken)
