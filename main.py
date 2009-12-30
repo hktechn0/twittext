@@ -229,9 +229,9 @@ Listed: %d""" % (
 2: Retweets by you, \
 3: Your tweets, retweeted""")
                 self.stdcur.clrtoeol()
-
-                if self.stdcur.getch() in (1, 2, 3):
-                    n = self.stdcur.getch() - ord("0")
+                
+                n = self.stdcur.getch() - ord("0")
+                if n in (1, 2, 3):
                     self.mode = 3
                     self.tmp.append(n)
             elif key == ord("f"):
