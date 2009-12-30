@@ -404,8 +404,10 @@ Listed: %d""" % (
             sss = sss[0:Y - i]
             
             for ss in sss:
+                if i + 1 >= Y:
+                    # last row fix
+                    ss = ss[:-1]
                 self.tlwin.addstr(i, 10, ss.encode("utf-8"))
-                
                 ret.append(s)
                 i += 1
             
@@ -421,6 +423,7 @@ Listed: %d""" % (
     def tl_select(self, lpost):
         self.tlwin.move(0, 0)
         self.tlwin.refresh()
+        (Y, X) = self.tlwin.getmaxyx()
 
         i = 0
         
@@ -430,8 +433,12 @@ Listed: %d""" % (
 
             self.tlwin.move(i, 0)
             self.tlwin.clrtoeol()
-            self.tlwin.addstr(s[:-1], attr | curses.A_STANDOUT)
-            
+            if i + 1 >= Y:
+                # last row fix
+                self.tlwin.addstr(s[:-1], attr | curses.A_STANDOUT)
+            else:
+                self.tlwin.addstr(s, attr | curses.A_STANDOUT)
+                            
             #self.tlwin.move(i, 0)
             self.tlwin.refresh()
 
@@ -456,8 +463,6 @@ Listed: %d""" % (
 
             # cursor point
             p = 0
-
-            (Y, X) = self.tlwin.getmaxyx()
 
             if c == curses.KEY_DOWN:
                 # Down
@@ -507,8 +512,13 @@ Listed: %d""" % (
             
             self.tlwin.move(i, 0)
             self.tlwin.clrtoeol()
-            self.tlwin.addstr(s[:-1], attr)
-            
+
+            if i + 1 >= Y:
+                # last row fix
+                self.tlwin.addstr(s[:-1], attr)
+            else:
+                self.tlwin.addstr(s, attr)
+
             i += p
             
             #self.tlwin.move(i, 0)
