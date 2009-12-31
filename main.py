@@ -199,7 +199,8 @@ Listed: %d""" % (
             
             if key == curses.KEY_DOWN:
                 # Post Select Mode
-                self.tl_select(lshow)
+                if lshow:
+                    self.tl_select(lshow)
             elif key in (curses.KEY_ENTER, 0x0a):
                 # Update Status
                 self.stdcur.move(0, 7)
