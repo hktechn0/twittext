@@ -106,8 +106,8 @@ class twittext():
                     message = "Twitter REST API Rate Limited!"
                 elif e.code == 404:
                     message = "Not Found..."
-                elif e.code == 403:
-                    message = "Access Forbidden!"
+                elif e.code in (401, 403):
+                    message = "Access Denied..."
                 else:
                     raise
 
