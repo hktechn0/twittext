@@ -27,10 +27,11 @@
 ###########################################################################
 
 import twoauth
-import os
+import os, sys
 import locale
 import ConfigParser
 import signal
+import urllib2
 
 __version__ = 0.5
 
@@ -75,8 +76,13 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, quit_me)
 
     # Start
-    tw = twittext(settings["ckey"], settings["csecret"],
-                  user["atoken"], user["asecret"])
+    try:
+        tw = twittext(settings["ckey"], settings["csecret"],
+                      user["atoken"], user["asecret"])
+    except urllib2.URLError:
+        print >>sys.stderr, "Error: Cannot connect Twitter."
+        exit()
+    
     tw.statusfooter = user["footer"]
     tw.autoreload = int(settings["autoreload"]) * 1000
     tw.run()
