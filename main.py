@@ -186,7 +186,11 @@ Listed: %d""" % (
         elif self.mode == 5:
             self.loading("Your Favorites")
             self.tl = self.api.favorites()
-        
+#        elif self.mode == 6:
+#            q = self.tmp.pop()
+#            self.loading("Real-time results for %s" % q)
+#            self.tl = pass
+
         # print header
         self.stdcur.addstr(0, 0, "Post?: ")
         self.stdcur.addstr(" " * (self.X - 8), curses.A_UNDERLINE)
@@ -249,6 +253,13 @@ Listed: %d""" % (
                 user = self.getstr()
                 self.friendship(user)
                 self.stdcur.getch()
+#            elif key == ord("s"):
+#                # Search
+#                self.stdcur.addstr(0, 0, "Search: ")
+#                self.stdcur.clrtoeol()
+#                q = self.getstr()
+#                self.tmp.append(q)
+#                self.mode = 6
             elif key in (-1, curses.KEY_LEFT, ord("h"), ord(" ")):
                 # Home Timeline
                 self.mode = 0
