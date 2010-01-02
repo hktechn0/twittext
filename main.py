@@ -27,6 +27,7 @@
 import twoauth
 
 from tools import *
+from newinput import *
 
 import curses
 import locale
@@ -262,8 +263,10 @@ Listed: %d""" % (
         return True
     
     def getstr(self, *args):
-        import newinput
-        return newinput.mbgetstr(self.stdcur, *args).encode("utf-8")
+        self.stdcur.timeout(-1)
+        s = mbgetstr(self.stdcur, *args)
+        self.stdcur.timeout(self.autoreload)
+        return s.encode("utf-8")
     
     def post(self, status, error = 0):
         self.stdcur.addstr(0, 0, "Updating Status...")
