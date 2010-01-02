@@ -405,7 +405,7 @@ Listed: %d""" % (
             sss = sss[0:Y - i]
             
             for ss in sss:
-                if i + 1 >= Y:
+                if i + 1 >= Y and ss != sss[-1]:
                     # last row fix
                     ss = ss[:-1]
                 self.tlwin.addstr(i, 10, ss.encode("utf-8"))
