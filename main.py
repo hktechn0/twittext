@@ -91,6 +91,9 @@ class twittext():
 
         self.listed = listed_count(self.api)
 
+        self.hometl = []
+        self.since_id = ""
+
         self.mode = 0
         self.stdcur.timeout(self.autoreload)
 
@@ -160,7 +163,10 @@ Listed: %d""" % (
         # timeline mode
         if self.mode == 0:
             self.loading("Home Timeline")
-            self.tl = self.api.home_timeline(count = self.Y)
+            self.hometl.extend(self.api.home_timeline(
+                    count = self.Y, since_id = self.since_id))
+            self.tl = self.hometl
+            self.since_id = self.hometl[-1]["id"]
         elif self.mode == 1:
             self.loading("Tweets mentioning @%s" % 
                          (self.api.user["screen_name"]))
