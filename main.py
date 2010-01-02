@@ -182,6 +182,9 @@ Listed: %d""" % (
         elif self.mode == 4:
             self.loading("Public Timeline")
             self.tl = self.api.public_timeline(count = self.Y)
+        elif self.mode == 5:
+            self.loading("Your Favorites")
+            self.tl = self.api.favorites()
         
         # print header
         self.stdcur.addstr(0, 0, "Post?: ")
@@ -236,6 +239,9 @@ Listed: %d""" % (
                     self.mode = 3
                     self.tmp.append(n)
             elif key == ord("f"):
+                # Favorite
+                self.mode = 5
+            elif key == ord("F"):
                 # Friendship
                 self.stdcur.addstr(0, 0, "User?: @")
                 self.stdcur.clrtoeol()
@@ -504,6 +510,12 @@ Listed: %d""" % (
                     # Destroy
                     self.destroy(target)
                 elif c == ord("f"):
+                    # Favorite
+                    self.stdcur.addstr(0, 0, "Favorite: ")
+                    self.stdcur.clrtoeol()
+                    self.api.favorite_create(target["id"])
+                    self.stdcur.addstr("OK. (%s)" % target["id"])
+                elif c == ord("F"):
                     # Friendship
                     self.friendship(target["user"]["screen_name"])
                 else:
