@@ -27,11 +27,13 @@
 ###########################################################################
 
 import twoauth
-import os, sys
+import os
+import sys
 import locale
 import ConfigParser
 import signal
 import urllib2
+import getopt
 
 __version__ = 0.5
 
@@ -39,42 +41,76 @@ def quit_me(signum = None, frame = None):
     exit()
 
 if __name__ == "__main__":
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "u:",
+                                   ("user=", "add"))
+    except getopt.GetoptError, e:
+        print >>sys.stderr, "[Error]", e
+        print >>sys.stderr, """\
+Usage:
+twittext [--add]
+twittext [-u username] [--user=username]"""
+        exit()
+    
     config_default = {
         "ckey": '3vqTk4hvNAno7NGzgBpdg',
         "csecret": 'PaeZx823Laxz3L5OF1R32zk9klW92tVyqn5mXjAoIw',
+        "autoreload" : "60",
         }
     
     conf_name = 'settings.conf'
     conf_path  = os.path.join(
         os.path.dirname(__file__), conf_name)
     conf = ConfigParser.SafeConfigParser(config_default)
+
+    add = False
+    first = False
     
     if not os.path.isfile(conf_path):
+        # settings does not exist
+        first = True
+    elif "--add" in sys.argv:
+        # User Add
+        add = True
+        conf.read(conf_path)
+    
+    if add or first:
+        # Get Access Token
         from gettoken import *
         (atoken, asecret, screen_name) = token(
             config_default["ckey"], 
-            config_default["csecret"])
-        
-        conf.set("DEFAULT", "default_user", screen_name)
-        conf.set("DEFAULT", "autoreload", "60")
+            config_default["csecret"])    
 
         conf.add_section(screen_name)
         conf.set(screen_name, "atoken", atoken)
         conf.set(screen_name, "asecret", asecret)
         conf.set(screen_name, "footer", "")
         
+        if first:
+            conf.set("DEFAULT", "default_user", screen_name)
+        
         fp = open(conf_path, "w")
         conf.write(fp)
         fp.close()
+
+        if add: exit()
     
     from main import *
     
     conf.read(conf_path)
     settings = dict(conf.items("DEFAULT"))
-    user = dict(conf.items(settings["default_user"]))
+    user_name = settings["default_user"]
     
+    for o, v in opts:
+        if o in ("-u", "--user"):
+            user_name = v
+            break
+    
+    user = dict(conf.items(user_name))
+    
+    # C-c to quit setting
     signal.signal(signal.SIGINT, quit_me)
-
+    
     # Start
     try:
         tw = twittext(settings["ckey"], settings["csecret"],
