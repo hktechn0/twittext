@@ -34,6 +34,7 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
     
     curses.noecho()
     curses.curs_set(1)
+    curses.flushinp()
     
     (maxy, maxx) = stdcur.getmaxyx()
 
