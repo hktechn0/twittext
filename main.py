@@ -347,9 +347,7 @@ Listed: %d""" % (
                 reply, in_reply_to_status_id = reply_to)
             
             self.stdcur.addstr("OK. (%s)" % post["id"])
-        else:
-            self.stdcur.move(0, 0)
-            self.stdcur.clrtoeol()
+            self.stdcur.getch()
 
     def retweet(self, _id):
         self.stdcur.move(0, 0)
@@ -363,9 +361,7 @@ Listed: %d""" % (
 
             self.api.status_retweet(_id)
             self.stdcur.addstr("OK.")
-        else:
-            self.stdcur.move(0, 0)
-            self.stdcur.clrtoeol()
+            self.stdcur.getch()
 
     def quotetweet(self, status):
         self.stdcur.move(0, 0)
@@ -377,54 +373,58 @@ Listed: %d""" % (
             qt = "%s QT: @%s: %s" % (
                 message, status["user"]["screen_name"], status["text"])
             self.post(qt.encode("utf-8"))
-        else:
-            self.stdcur.move(0, 0)
-            self.stdcur.clrtoeol()
 
     def destroy(self, status):
         self.stdcur.move(0, 0)
         self.stdcur.clrtoeol()
-
+        
         if int(self.api.user["id"]) == int(status["user"]["id"]):
             self.stdcur.addstr(0, 0, "Destroy? (Y/n): ")
-
+            self.stdcur.refresh()
+            
             if self.stdcur.getch() != ord("n"):
-                self.stdcur.addstr(0, 0, "Destroying: ")
+                self.stdcur.move(0, 0)
                 self.stdcur.clrtoeol()
                 self.stdcur.refresh()
-
+                self.stdcur.addstr("Destroying: ")
+                self.stdcur.refresh()
                 self.api.status_destroy(status["id"])
                 self.stdcur.addstr("OK.")
+                self.stdcur.refresh()
+                self.stdcur.getch()
             else:
                 self.stdcur.move(0, 0)
                 self.stdcur.clrtoeol()
         else:
-            self.stdcur.addstr(0, 0, "Can't destroy this status...")
+            self.stdcur.addstr(0, 0, "[Error] Can't destroy this status...")
+            self.stdcur.refresh()
+            self.stdcur.getch()
     
     def friendship(self, user):
         self.stdcur.move(0, 0)
         self.stdcur.clrtoeol()
-
+        
         fr = self.api.friends_show(user)
         ed = fr["source"]["followed_by"] == "true"
         ing = fr["source"]["following"] == "true"
-
+        
         if ed:
             a = "<"
         else:
             a = " "
-
+        
         if ing:
             b = ">"
         else:
             b = " "
-
+        
         me = self.api.user["screen_name"]
         self.stdcur.addstr("@%s %s===%s @%s" % (me, a, b, user))
-            
+        self.stdcur.getch()
+    
     def tl_show(self, tl):
         self.tlwin.clear()
-
+        
         ret = []
         i = 0
         for s in tl[::-1]:
@@ -467,7 +467,7 @@ Listed: %d""" % (
         self.tlwin.move(0, 0)
         self.tlwin.refresh()
         (Y, X) = self.tlwin.getmaxyx()
-
+        
         i = 0
         
         while True:
@@ -491,6 +491,14 @@ Listed: %d""" % (
             ago = twitterago(created_at)
             source = twittersource(lpost[i]["source"])
             # isretweet(lpost[i])
+            
+            # print screen_name
+            u = lpost[i]["user"]
+            p = "[Protected]" if u["protected"] == u"true" else ""
+            h = "@%s (%s) %s" % (u["screen_name"], u["name"], p)
+            self.stdcur.addstr(0, 0, h.encode("utf-8"))
+            self.stdcur.clrtoeol()
+            self.stdcur.refresh()
             
             footer = "[%s] %s from %s" % (puttime, ago, source.encode("utf-8"))
             self.footwin.addstr(0, 0, footer)
@@ -567,6 +575,7 @@ Listed: %d""" % (
                     self.stdcur.clrtoeol()
                     self.api.favorite_create(target["id"])
                     self.stdcur.addstr("OK. (%s)" % target["id"])
+                    self.stdcur.getch()
                 elif c == ord("F"):
                     # Friendship
                     self.friendship(target["user"]["screen_name"])
