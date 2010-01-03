@@ -40,17 +40,41 @@ __version__ = 0.5
 def quit_me(signum = None, frame = None):
     exit()
 
-if __name__ == "__main__":
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "u:",
-                                   ("user=", "add"))
-    except getopt.GetoptError, e:
-        print >>sys.stderr, "[Error]", e
-        print >>sys.stderr, """\
+def print_version():
+    print """\
+%(name)s %(version)s
+Copyright (C) %(year)s %(copyright)s
+%(name)s comes with ABSOLUTELY NO WARRANTY.
+You may redistribute copies of %(name)s
+under the terms of the GNU General Public License.
+For more information about these matters, see the file named COPYING.""" % {
+        "name" : "Twittext",
+        "version" : __version__,
+        "year" : "2009-2010",
+        "copyright" : "Hirotaka Kawata",
+        }
+
+def print_usage():
+    print """\
 Usage:
 twittext [--add]
-twittext [-u username] [--user=username]"""
+twittext [-u username] [--user=username]
+twittext [-v]"""
+
+if __name__ == "__main__":
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "u:v",
+                                   ("user=", "version", "add"))
+    except getopt.GetoptError, e:
+        print >>sys.stderr, "[Error]", e
+        print_usage()
         exit()
+    
+    # print version
+    for v in ("--version", "-v"):
+        if v in sys.argv:
+            print_version()
+            exit()
     
     config_default = {
         "ckey": '3vqTk4hvNAno7NGzgBpdg',
