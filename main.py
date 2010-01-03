@@ -210,6 +210,9 @@ Listed: %d""" % (
 #            q = self.tmp.pop()
 #            self.loading("Real-time results for %s" % q)
 #            self.tl = pass
+        elif self.mode == 7:
+            self.loading("Direct messages sent only to you")
+            self.tl = self.api.dm_list()
         
         # print header
         self.stdcur.addstr(0, 0, "Post?: ")
@@ -282,6 +285,17 @@ Listed: %d""" % (
 #                q = self.getstr()
 #                self.tmp.append(q)
 #                self.mode = 6
+            elif key == ord("d"):
+                # Show Direct Messages
+                self.mode = 7
+            elif key == ord("D"):
+                # Send Direct Message
+                self.stdcur.move(0, 0)
+                self.stdcur.clrtoeol()
+                self.stdcur.addstr("D User?: ")
+                user = self.getstr()
+                if user:
+                    self.dmessage(user)
             elif key in (-1, curses.KEY_LEFT, ord("h"), ord(" ")):
                 # Home Timeline
                 self.mode = 0
@@ -294,6 +308,11 @@ Listed: %d""" % (
             break
         
         return True
+    
+    def clear_head(self):
+        self.stdcur.move(0, 0)
+        self.stdcur.clrtoeol()
+        self.stdcur.refresh()
     
     def getstr(self, *args):
         self.stdcur.timeout(-1)
@@ -362,7 +381,7 @@ Listed: %d""" % (
             self.api.status_retweet(_id)
             self.stdcur.addstr("OK.")
             self.stdcur.getch()
-
+    
     def quotetweet(self, status):
         self.stdcur.move(0, 0)
         self.stdcur.clrtoeol()
@@ -373,7 +392,7 @@ Listed: %d""" % (
             qt = "%s QT: @%s: %s" % (
                 message, status["user"]["screen_name"], status["text"])
             self.post(qt.encode("utf-8"))
-
+    
     def destroy(self, status):
         self.stdcur.move(0, 0)
         self.stdcur.clrtoeol()
@@ -421,15 +440,37 @@ Listed: %d""" % (
         me = self.api.user["screen_name"]
         self.stdcur.addstr("@%s %s===%s @%s" % (me, a, b, user))
         self.stdcur.getch()
+
+    def dmessage(self, user):
+        self.clear_head()
+        self.stdcur.addstr("D %s " % user)
+        message = self.getstr()
+        
+        self.clear_head()
+        self.stdcur.addstr("Sending Direct Message: ")
+        self.stdcur.refresh()
+        self.api.dm_new(user, message)
+        self.stdcur.addstr("OK.")
+        self.stdcur.refresh()
+        self.stdcur.getch()
     
     def tl_show(self, tl):
         self.tlwin.clear()
         
+        # if Direct Messages?
+        if "sender" in tl[0].keys():
+            dm = True
+            for m in tl:
+                m["user"] = m["sender"]
+        else:
+            dm = False
+        
         ret = []
         i = 0
         for s in tl[::-1]:
-            # set curses attr (color)
-            self.tlwin.attrset(attr_select(s, self.api.user))
+            if not dm:
+                # set curses attr (color)
+                self.tlwin.attrset(attr_select(s, self.api.user))
             
             # print screen_name
             sname = "[%7s] " % (s["user"]["screen_name"][0:7])
@@ -468,10 +509,22 @@ Listed: %d""" % (
         self.tlwin.refresh()
         (Y, X) = self.tlwin.getmaxyx()
         
+        # if Direct Messages?
+        if "sender" in lpost[0].keys():
+            dm = True
+            for m in lpost:
+                m["user"] = m["sender"]
+        else:
+            dm = False
+
         i = 0
         
         while True:
-            attr = attr_select(lpost[i], self.api.user) & 0xffffff00
+            if not dm:
+                attr = attr_select(lpost[i], self.api.user) & 0xffffff00 
+            else:
+                attr = curses.A_NORMAL
+
             s = self.tlwin.instr(i, 0)
 
             self.tlwin.move(i, 0)
@@ -485,13 +538,6 @@ Listed: %d""" % (
             #self.tlwin.move(i, 0)
             self.tlwin.refresh()
 
-            # print created_at time
-            created_at = twittertime(lpost[i]["created_at"])
-            puttime = str(created_at).split(".")[0]
-            ago = twitterago(created_at)
-            source = twittersource(lpost[i]["source"])
-            # isretweet(lpost[i])
-            
             # print screen_name
             u = lpost[i]["user"]
             p = "[Protected]" if u["protected"] == u"true" else ""
@@ -500,7 +546,19 @@ Listed: %d""" % (
             self.stdcur.clrtoeol()
             self.stdcur.refresh()
             
-            footer = "[%s] %s from %s" % (puttime, ago, source.encode("utf-8"))
+            # print created_at time
+            created_at = twittertime(lpost[i]["created_at"])
+            puttime = str(created_at).split(".")[0]
+            ago = twitterago(created_at)
+            #isretweet(lpost[i])
+            
+            if not dm:
+                source = twittersource(lpost[i]["source"])
+                footer = "[%s] %s from %s" % (
+                    puttime, ago, source.encode("utf-8"))
+            else:
+                footer = "[%s] %s" % (puttime, ago)
+
             self.footwin.addstr(0, 0, footer)
             self.footwin.clrtoeol()
             
@@ -569,6 +627,9 @@ Listed: %d""" % (
                 elif c == ord("d"):
                     # Destroy
                     self.destroy(target)
+                elif c == ord("D"):
+                    # Direct Message
+                    self.dmessage(target["user"]["screen_name"])
                 elif c == ord("f"):
                     # Favorite
                     self.stdcur.addstr(0, 0, "Favorite: ")
