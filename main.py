@@ -46,7 +46,8 @@ class twittext():
 
         # init temporary stack
         self.tmp = []
-        
+        self.hist = []
+
         self.statusfooter = ""
         self.autoreload = 60000 # ms        
     
@@ -93,6 +94,7 @@ class twittext():
 
         self.hometl = []
         self.since_id = ""
+        self.max_id = ""
 
         self.mode = 0
         self.stdcur.timeout(self.autoreload)
@@ -160,35 +162,47 @@ Listed: %d""" % (
             self.listed)
         self.footwin.addstr(0, 0, userinfo)
 
+        if self.mode != -1:
+            # Backup for scroll
+            self.oldmode = self.mode
+            self.oldtmp = list(self.tmp)
+        
         # timeline mode
         if self.mode == 0:
             self.loading("Home Timeline")
             self.hometl.extend(self.api.home_timeline(
-                    count = self.Y, since_id = self.since_id))
+                    count = self.Y, 
+                    since_id = self.since_id, max_id = self.max_id))
             self.tl = self.hometl
             self.since_id = self.hometl[-1]["id"]
         elif self.mode == 1:
             self.loading("Tweets mentioning @%s" % 
                          (self.api.user["screen_name"]))
-            self.tl = self.api.mentions(count = self.Y)
+            self.tl = self.api.mentions(count = self.Y,
+                                        max_id = self.max_id)
         elif self.mode == 2:
             tluser = self.tmp.pop()
             self.loading("@%s Timeline" % tluser)
-            self.tl = self.api.user_timeline(tluser, count = self.Y)
+            self.tl = self.api.user_timeline(tluser, count = self.Y,
+                                             max_id = self.max_id)
         elif self.mode == 3:
             m = self.tmp.pop()
             if m == 1:
                 self.loading("Retweets by others")
-                self.tl = self.api.rt_to_me(count = self.Y)
+                self.tl = self.api.rt_to_me(count = self.Y,
+                                            max_id = self.max_id)
             elif m == 2:
                 self.loading("Retweets by you")
-                self.tl = self.api.rt_by_me(count = self.Y)
+                self.tl = self.api.rt_by_me(count = self.Y,
+                                            max_id = self.max_id)
             elif m == 3:
                 self.loading("Your tweets, retweeted")
-                self.tl = self.api.rt_of_me(count = self.Y)
+                self.tl = self.api.rt_of_me(count = self.Y,
+                                            max_id = self.max_id)
         elif self.mode == 4:
             self.loading("Public Timeline")
-            self.tl = self.api.public_timeline(count = self.Y)
+            self.tl = self.api.public_timeline(count = self.Y,
+                                               max_id = self.max_id)
         elif self.mode == 5:
             self.loading("Your Favorites")
             self.tl = self.api.favorites()
@@ -196,12 +210,13 @@ Listed: %d""" % (
 #            q = self.tmp.pop()
 #            self.loading("Real-time results for %s" % q)
 #            self.tl = pass
-
+        
         # print header
         self.stdcur.addstr(0, 0, "Post?: ")
         self.stdcur.addstr(" " * (self.X - 8), curses.A_UNDERLINE)
         
         self.mode = -1
+        self.max_id = ""    
         
         # print timeline
         lshow = self.tl_show(self.tl)
@@ -259,6 +274,7 @@ Listed: %d""" % (
                 user = self.getstr()
                 self.friendship(user)
                 self.stdcur.getch()
+                continue
 #            elif key == ord("s"):
 #                # Search
 #                self.stdcur.addstr(0, 0, "Search: ")
@@ -276,7 +292,7 @@ Listed: %d""" % (
                 continue
 
             break
-                
+        
         return True
     
     def getstr(self, *args):
@@ -495,10 +511,26 @@ Listed: %d""" % (
                 # Down
                 if i < Y - 1 and i < len(lpost) - 1:
                     p = 1
+                else:
+                    # scroll
+                    self.mode = self.oldmode
+                    self.tmp = list(self.oldtmp)
+                    self.max_id = target["id"]
+                    self.since_id = ""
+                    self.hist.append(lpost[0]["id"])
+                    break
             elif c == curses.KEY_UP:
                 # Up
                 if i > 0:
                     p = -1
+                else:
+                    # scroll
+                    if self.hist:
+                        self.mode = self.oldmode
+                        self.tmp = list(self.oldtmp)
+                        self.max_id = self.hist.pop()
+                        self.since_id = ""
+                        break
             elif c in (curses.KEY_LEFT, curses.KEY_BACKSPACE, 0x1b):
                 # Return
                 break
