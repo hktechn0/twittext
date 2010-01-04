@@ -170,3 +170,18 @@ def split_user(s, i = 0):
         return match[i]
 
     return None
+
+def statusinfo(status):
+    created_at = twittertime(status["created_at"])
+    puttime = str(created_at).split(".")[0]
+    ago = twitterago(created_at)
+    #isretweet(lpost[i])
+    
+    if "source" in status.keys():
+        source = twittersource(status["source"])
+        footer = "[%s] %s from %s" % (
+            puttime, ago, source.encode("utf-8"))
+    else:
+        footer = "[%s] %s" % (puttime, ago)
+
+    return footer

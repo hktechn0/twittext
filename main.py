@@ -453,7 +453,37 @@ Listed: %d""" % (
         self.stdcur.addstr("OK.")
         self.stdcur.refresh()
         self.stdcur.getch()
-    
+
+    def detail(self, status):
+        self.clear_head()
+
+        #self.headwin.addstr(0, 0, "[Status Detail]")
+        #self.headwin.clrtoeol()
+
+        self.footwin.addstr(0, 0, statusinfo(status))
+        self.footwin.clrtoeol()
+
+        self.tlwin.clear()
+        self.tlwin.move(0, 0)
+        s = """\
+%s
+(%s)
+%s
+%s
+
+<%s>
+""" % (
+            status["user"]["screen_name"],
+            status["user"]["name"],
+#            status["user"]["following"],
+#            "Protected" if status["user"]["protected"] == "true" else "",
+            "-" * (self.X - 1),
+            status["text"],
+            status["id"],)
+        self.tlwin.addstr(s.encode("utf-8"))
+        self.tlwin.refresh()
+        self.stdcur.getch()
+       
     def tl_show(self, tl):
         self.tlwin.clear()
         
@@ -547,19 +577,7 @@ Listed: %d""" % (
             self.stdcur.refresh()
             
             # print created_at time
-            created_at = twittertime(lpost[i]["created_at"])
-            puttime = str(created_at).split(".")[0]
-            ago = twitterago(created_at)
-            #isretweet(lpost[i])
-            
-            if not dm:
-                source = twittersource(lpost[i]["source"])
-                footer = "[%s] %s from %s" % (
-                    puttime, ago, source.encode("utf-8"))
-            else:
-                footer = "[%s] %s" % (puttime, ago)
-
-            self.footwin.addstr(0, 0, footer)
+            self.footwin.addstr(0, 0, statusinfo(lpost[i]))
             self.footwin.clrtoeol()
             
             curses.flushinp()
@@ -640,6 +658,15 @@ Listed: %d""" % (
                 elif c == ord("F"):
                     # Friendship
                     self.friendship(target["user"]["screen_name"])
+                elif c == ord("t"):
+                    # Show reply_to
+                    if target["in_reply_to_status_id"]:
+                        self.detail(
+                            self.api.status_show(
+                                target["in_reply_to_status_id"]))
+                        break
+                    else:
+                        continue
                 else:
                     continue
             else:
