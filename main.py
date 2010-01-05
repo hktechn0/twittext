@@ -54,13 +54,13 @@ class twittext():
     def run(self):
         # start curses
         curses.wrapper(self.start)
-    
-    def start(self, stdcur):
+
+    def init(self):
         # curses init
         curses.use_default_colors()
         curses.curs_set(0)
         
-        self.Y, self.X = stdcur.getmaxyx()
+        self.Y, self.X = self.stdcur.getmaxyx()
 
         # define color set
         curses.start_color()
@@ -69,28 +69,25 @@ class twittext():
         curses.init_pair(3, curses.COLOR_CYAN, -1)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLUE)
 
-        # create subwin
-        self.stdcur = stdcur
         self.stdcur.idlok(1)
         self.stdcur.scrollok(True)
         self.stdcur.clear()
-        
-        self.tlwin = stdcur.subwin(self.Y - 3, self.X, 2, 0)
+
+        # create subwin
+        self.tlwin = self.stdcur.subwin(self.Y - 3, self.X, 2, 0)
         self.tlwin.idlok(1)
         self.tlwin.scrollok(True)
         self.tlwin.clear()
         
-        self.headwin = stdcur.subwin(1, self.X, 1, 0)
+        self.headwin = self.stdcur.subwin(1, self.X, 1, 0)
         self.headwin.immedok(True)
         self.headwin.bkgd(" ", curses.color_pair(4))
         self.headwin.attrset(curses.color_pair(4))
 
-        self.footwin = stdcur.subwin(self.Y - 1, 0)
+        self.footwin = self.stdcur.subwin(self.Y - 1, 0)
         self.footwin.immedok(True)
         self.footwin.bkgd(" ", curses.color_pair(4))
         self.footwin.attrset(curses.color_pair(4))
-
-        self.listed = listed_count(self.api)
 
         self.hometl = list()
         self.since_id = str()
@@ -99,10 +96,23 @@ class twittext():
         self.mode = 0
         self.stdcur.timeout(self.autoreload)
 
+    def start(self, stdcur):
+        # initialize
+        self.stdcur = stdcur
+        self.init()
+        
+        try:
+            self.listed = listed_count(self.api)
+        except:
+            self.listed = -1
+
         while True:
             try:
                 # show timeline
-                while self.home(): pass;
+                while self.home():
+                    y, x = self.stdcur.getmaxyx()
+                    if (y, x) != (self.Y, self.X):
+                        self.init()
                 break
             except urllib2.HTTPError, e:
                 # Twitter over capacity

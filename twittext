@@ -34,6 +34,7 @@ import ConfigParser
 import signal
 import urllib2
 import getopt
+import curses
 
 __version__ = 0.5
 
@@ -140,9 +141,15 @@ if __name__ == "__main__":
         tw = twittext(settings["ckey"], settings["csecret"],
                       user["atoken"], user["asecret"])
     except urllib2.URLError:
-        print >>sys.stderr, "Error: Cannot connect Twitter."
+        print >>sys.stderr, "[Error] Cannot connect Twitter."
         exit()
     
     tw.statusfooter = user["footer"]
     tw.autoreload = int(settings["autoreload"]) * 1000
-    tw.run()
+
+    while True:
+        try:
+            tw.run()
+            break
+        except curses.error:
+            pass
