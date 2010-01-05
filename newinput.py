@@ -34,6 +34,7 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
     
     curses.noecho()
     curses.curs_set(1)
+    curses.flushinp()
     
     (maxy, maxx) = stdcur.getmaxyx()
 
@@ -56,9 +57,7 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
         if c == 0x0a:
             break
         elif c == curses.KEY_BACKSPACE:
-            if i <= 0:
-                continue
-            
+            if i <= 0: continue            
             s = s[:i - 1] + s[i:]
             i -= 1
             rewrite_text(stdcur, setx, sety, s, i)
@@ -66,15 +65,11 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
             s = s[:i] + s[i + 1:]
             rewrite_text(stdcur, setx, sety, s, i)
         elif c == curses.KEY_LEFT:
-            if i <= 0:
-                continue
-            
+            if i <= 0: continue
             i -= 1
             rewrite_text(stdcur, setx, sety, s, i)
         elif c == curses.KEY_RIGHT:
-            if i >= len(s):
-                continue
-            
+            if i >= len(s): continue
             i += 1
             rewrite_text(stdcur, setx, sety, s, i)
         elif curses.KEY_MIN <= c <= curses.KEY_MAX:
@@ -90,7 +85,7 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
             
             c = utf2ucs(c)
             
-            if isascii(c) and not(isprintable(c)):
+            if isascii(c) and not isprintable(c):
                 continue
             
             s = s[:i] + c + s[i:]
@@ -104,14 +99,14 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
 def utf2ucs(utf):
     if utf & 0x80:
         # multibyte
-        buf = []
-        while not(utf & 0x40):
+        buf = list()
+        while not (utf & 0x40):
             buf.append(utf & 0x3f)
             utf >>= 8
         buf.append(utf & (0x3f >> len(buf)))
 
         ucs = 0
-        while buf != []:
+        while buf:
             ucs <<= 6
             ucs += buf.pop()
     else:
@@ -138,12 +133,8 @@ def getoffset(s, cc, setx, maxx):
     j = 0
 
     for ic in s:
-        j += 1
-        
-        if isascii(ic):
-            w += 1
-        else:
-            w += 2
+        j += 1        
+        w += 1 if isascii(ic) else 2
             
         if w > cc + setx - maxx:
             break
@@ -156,10 +147,7 @@ def cw_count(string):
     cnt = 0
 
     for c in string:
-        if isascii(c):
-            cnt += 1
-        else:
-            cnt += 2
+        cnt += 1 if isascii(c) else 2
     
     return cnt
 
@@ -169,10 +157,7 @@ def exstr_width(string, cnt):
     i = 0
 
     for c in string:
-        if isascii(c):
-            width += 1
-        else:
-            width += 2
+        width += 1 if isascii(c) else 2
 
         if width >= cnt:
             break

@@ -27,6 +27,7 @@
 import twoauth
 
 from tools import *
+from newinput import *
 
 import curses
 import locale
@@ -44,21 +45,22 @@ class twittext():
         self.userlastget = datetime.datetime.now()
 
         # init temporary stack
-        self.tmp = []
-        
+        self.tmp = list()
+        self.hist = list()
+
         self.statusfooter = ""
         self.autoreload = 60000 # ms        
     
     def run(self):
         # start curses
         curses.wrapper(self.start)
-    
-    def start(self, stdcur):
+
+    def init(self):
         # curses init
         curses.use_default_colors()
         curses.curs_set(0)
         
-        (self.Y, self.X) = stdcur.getmaxyx()
+        self.Y, self.X = self.stdcur.getmaxyx()
 
         # define color set
         curses.start_color()
@@ -67,36 +69,50 @@ class twittext():
         curses.init_pair(3, curses.COLOR_CYAN, -1)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLUE)
 
-        # create subwin
-        self.stdcur = stdcur
         self.stdcur.idlok(1)
         self.stdcur.scrollok(True)
         self.stdcur.clear()
 
-        self.tlwin = stdcur.subwin(self.Y - 3, self.X, 2, 0)
+        # create subwin
+        self.tlwin = self.stdcur.subwin(self.Y - 3, self.X, 2, 0)
         self.tlwin.idlok(1)
         self.tlwin.scrollok(True)
         self.tlwin.clear()
-
-        self.headwin = stdcur.subwin(1, self.X, 1, 0)
+        
+        self.headwin = self.stdcur.subwin(1, self.X, 1, 0)
         self.headwin.immedok(True)
         self.headwin.bkgd(" ", curses.color_pair(4))
         self.headwin.attrset(curses.color_pair(4))
 
-        self.footwin = stdcur.subwin(self.Y - 1, 0)
+        self.footwin = self.stdcur.subwin(self.Y - 1, 0)
         self.footwin.immedok(True)
         self.footwin.bkgd(" ", curses.color_pair(4))
         self.footwin.attrset(curses.color_pair(4))
 
-        self.listed = listed_count(self.api)
+        self.hometl = list()
+        self.since_id = str()
+        self.max_id = str()
 
         self.mode = 0
         self.stdcur.timeout(self.autoreload)
 
+    def start(self, stdcur):
+        # initialize
+        self.stdcur = stdcur
+        self.init()
+        
+        try:
+            self.listed = listed_count(self.api)
+        except:
+            self.listed = -1
+
         while True:
             try:
                 # show timeline
-                while self.home(): pass;
+                while self.home():
+                    y, x = self.stdcur.getmaxyx()
+                    if (y, x) != (self.Y, self.X):
+                        self.init()
                 break
             except urllib2.HTTPError, e:
                 # Twitter over capacity
@@ -112,24 +128,25 @@ class twittext():
                     raise
 
                 self.mode = 0
+                self.clear_head()
                 self.stdcur.addstr(
                     0, 0,
                     "[Error] %s" % message,
                     curses.color_pair(1) | curses.A_BOLD)
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 self.stdcur.getch()
             except httplib.BadStatusLine:
                 self.mode = 0
+                self.clear_head()
                 self.stdcur.addstr(
                     0, 0,
                     "[Error] HTTP Error",
                     curses.color_pair(1) | curses.A_BOLD)
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 self.stdcur.getch()
     
     def home(self):
-        if self.mode >= 0:
-            self.headwin.clear()
+        if self.mode >= 0: self.headwin.clear()
         self.footwin.clear()
         
         # Header
@@ -156,38 +173,64 @@ Listed: %d""" % (
             self.listed)
         self.footwin.addstr(0, 0, userinfo)
 
+        if self.mode != -1:
+            # Backup for scroll
+            self.oldmode = self.mode
+            self.oldtmp = list(self.tmp)
+        
         # timeline mode
         if self.mode == 0:
             self.loading("Home Timeline")
-            self.tl = self.api.home_timeline(count = self.Y)
+            self.hometl.extend(self.api.home_timeline(
+                    count = self.Y, 
+                    since_id = self.since_id, max_id = self.max_id))
+            self.tl = self.hometl
+            self.since_id = self.hometl[-1]["id"]
         elif self.mode == 1:
             self.loading("Tweets mentioning @%s" % 
                          (self.api.user["screen_name"]))
-            self.tl = self.api.mentions(count = self.Y)
+            self.tl = self.api.mentions(count = self.Y,
+                                        max_id = self.max_id)
         elif self.mode == 2:
             tluser = self.tmp.pop()
             self.loading("@%s Timeline" % tluser)
-            self.tl = self.api.user_timeline(tluser, count = self.Y)
+            self.tl = self.api.user_timeline(tluser, count = self.Y,
+                                             max_id = self.max_id)
         elif self.mode == 3:
             m = self.tmp.pop()
             if m == 1:
                 self.loading("Retweets by others")
-                self.tl = self.api.rt_to_me(count = self.Y)
+                self.tl = self.api.rt_to_me(count = self.Y,
+                                            max_id = self.max_id)
             elif m == 2:
                 self.loading("Retweets by you")
-                self.tl = self.api.rt_by_me(count = self.Y)
+                self.tl = self.api.rt_by_me(count = self.Y,
+                                            max_id = self.max_id)
             elif m == 3:
                 self.loading("Your tweets, retweeted")
-                self.tl = self.api.rt_of_me(count = self.Y)
+                self.tl = self.api.rt_of_me(count = self.Y,
+                                            max_id = self.max_id)
         elif self.mode == 4:
             self.loading("Public Timeline")
-            self.tl = self.api.public_timeline(count = self.Y)
+            self.tl = self.api.public_timeline(count = self.Y,
+                                               max_id = self.max_id)
+        elif self.mode == 5:
+            self.loading("Your Favorites")
+            self.tl = self.api.favorites()
+#        elif self.mode == 6:
+#            q = self.tmp.pop()
+#            self.loading("Real-time results for %s" % q)
+#            self.tl = pass
+        elif self.mode == 7:
+            self.loading("Direct messages sent only to you")
+            self.tl = self.api.dm_list()
         
         # print header
         self.stdcur.addstr(0, 0, "Post?: ")
         self.stdcur.addstr(" " * (self.X - 8), curses.A_UNDERLINE)
         
         self.mode = -1
+        self.max_id = ""    
         
         # print timeline
         lshow = self.tl_show(self.tl)
@@ -195,27 +238,26 @@ Listed: %d""" % (
         while True:
             # key input
             curses.flushinp()
+
             key = self.stdcur.getch(0, 7)
             
             if key == curses.KEY_DOWN:
                 # Post Select Mode
-                if lshow:
-                    self.tl_select(lshow)
+                if lshow: self.tl_select(lshow)
             elif key in (curses.KEY_ENTER, 0x0a):
                 # Update Status
                 self.stdcur.move(0, 7)
                 self.stdcur.clrtoeol()
                 status = self.getstr()
-                
-                if status:
-                    self.post(status)
+                if status: self.post(status)
             elif key == ord("@"):
                 # Show Reply
                 self.mode = 1
             elif key == ord("u"):
                 # User Timeline
+                self.clear_head()
                 self.stdcur.addstr(0, 0, "User?: @")
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 user = self.getstr()
                 self.tmp.append(user)
                 self.mode = 2
@@ -224,24 +266,46 @@ Listed: %d""" % (
                 self.mode = 4
             elif key == ord("r"):
                 # Retweet
+                self.clear_head()
                 self.stdcur.addstr(
                     0, 0, """\
 1: Retweets by others, \
 2: Retweets by you, \
 3: Your tweets, retweeted""")
-                self.stdcur.clrtoeol()
-                
                 n = self.stdcur.getch() - ord("0")
                 if n in (1, 2, 3):
                     self.mode = 3
                     self.tmp.append(n)
             elif key == ord("f"):
+                # Favorite
+                self.mode = 5
+            elif key == ord("F"):
                 # Friendship
+                self.clear_head()
                 self.stdcur.addstr(0, 0, "User?: @")
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 user = self.getstr()
                 self.friendship(user)
                 self.stdcur.getch()
+                continue
+#            elif key == ord("s"):
+#                # Search
+#                self.stdcur.addstr(0, 0, "Search: ")
+#                self.stdcur.clrtoeol()
+#                q = self.getstr()
+#                self.tmp.append(q)
+#                self.mode = 6
+            elif key == ord("d"):
+                # Show Direct Messages
+                self.mode = 7
+            elif key == ord("D"):
+                # Send Direct Message
+                self.clear_head()
+                self.stdcur.addstr("D User?: ")
+                self.stdcur.refresh()
+                user = self.getstr()
+                if user:
+                    self.dmessage(user)
             elif key in (-1, curses.KEY_LEFT, ord("h"), ord(" ")):
                 # Home Timeline
                 self.mode = 0
@@ -252,18 +316,25 @@ Listed: %d""" % (
                 continue
 
             break
-                
+        
         return True
     
-    def getstr(self, *args):
-        import newinput
-        return newinput.mbgetstr(self.stdcur, *args).encode("utf-8")
-    
-    def post(self, status, error = 0):
-        self.stdcur.addstr(0, 0, "Updating Status...")
+    def clear_head(self):
+        self.stdcur.move(0, 0)
         self.stdcur.clrtoeol()
         self.stdcur.refresh()
-
+    
+    def getstr(self, *args):
+        self.stdcur.timeout(-1)
+        s = mbgetstr(self.stdcur, *args)
+        self.stdcur.timeout(self.autoreload)
+        return s.encode("utf-8")
+    
+    def post(self, status, error = 0):
+        self.clear_head()
+        self.stdcur.addstr(0, 0, "Updating Status...")
+        self.stdcur.refresh()
+        
         post = "%s %s" % (
             status,
             self.statusfooter)
@@ -281,10 +352,13 @@ Listed: %d""" % (
                 raise
         else:
             self.stdcur.addstr(" OK.")
+
+        self.stdcur.refresh()
     
     def reply(self, status):
+        self.clear_head()
         self.stdcur.addstr(0, 0, "Reply: ")
-        self.stdcur.clrtoeol()
+        self.stdcur.refresh()
 
         name = status["user"]["screen_name"]
         reply_to = status["id"]
@@ -295,8 +369,8 @@ Listed: %d""" % (
         message = self.getstr()
         
         if message:
+            self.clear_head()
             self.stdcur.addstr(0, 0, "Reply... ")
-            self.stdcur.clrtoeol()
             self.stdcur.refresh()
 
             reply = ("%s%s" % (
@@ -305,29 +379,26 @@ Listed: %d""" % (
                 reply, in_reply_to_status_id = reply_to)
             
             self.stdcur.addstr("OK. (%s)" % post["id"])
-        else:
-            self.stdcur.move(0, 0)
-            self.stdcur.clrtoeol()
+            self.stdcur.refresh()
+            self.stdcur.getch()
 
     def retweet(self, _id):
-        self.stdcur.move(0, 0)
-        self.stdcur.clrtoeol()
+        self.clear_head()
         self.stdcur.addstr("Retweet? (Y/n)")
+        self.stdcur.refresh()
 
         if self.stdcur.getch() != ord("n"):
+            self.clear_head()
             self.stdcur.addstr(0, 0, "Retweet... ")
-            self.stdcur.clrtoeol()
             self.stdcur.refresh()
 
             self.api.status_retweet(_id)
             self.stdcur.addstr("OK.")
-        else:
-            self.stdcur.move(0, 0)
-            self.stdcur.clrtoeol()
-
+            self.stdcur.refresh()
+            self.stdcur.getch()
+    
     def quotetweet(self, status):
-        self.stdcur.move(0, 0)
-        self.stdcur.clrtoeol()
+        self.clear_head()
         self.stdcur.addstr("QT: ")
         message = self.getstr().decode("utf-8")
         
@@ -335,59 +406,115 @@ Listed: %d""" % (
             qt = "%s QT: @%s: %s" % (
                 message, status["user"]["screen_name"], status["text"])
             self.post(qt.encode("utf-8"))
-        else:
-            self.stdcur.move(0, 0)
-            self.stdcur.clrtoeol()
-
+    
     def destroy(self, status):
         self.stdcur.move(0, 0)
         self.stdcur.clrtoeol()
-
+        
         if int(self.api.user["id"]) == int(status["user"]["id"]):
             self.stdcur.addstr(0, 0, "Destroy? (Y/n): ")
-
+            self.stdcur.refresh()
+            
             if self.stdcur.getch() != ord("n"):
-                self.stdcur.addstr(0, 0, "Destroying: ")
+                self.stdcur.move(0, 0)
                 self.stdcur.clrtoeol()
                 self.stdcur.refresh()
-
+                self.stdcur.addstr("Destroying: ")
+                self.stdcur.refresh()
                 self.api.status_destroy(status["id"])
                 self.stdcur.addstr("OK.")
+                self.stdcur.refresh()
+                self.stdcur.getch()
             else:
                 self.stdcur.move(0, 0)
                 self.stdcur.clrtoeol()
         else:
-            self.stdcur.addstr(0, 0, "Can't destroy this status...")
+            self.stdcur.addstr(0, 0, "[Error] Can't destroy this status...")
+            self.stdcur.refresh()
+            self.stdcur.getch()
     
     def friendship(self, user):
         self.stdcur.move(0, 0)
         self.stdcur.clrtoeol()
-
+        
         fr = self.api.friends_show(user)
         ed = fr["source"]["followed_by"] == "true"
         ing = fr["source"]["following"] == "true"
-
+        
         if ed:
             a = "<"
         else:
             a = " "
-
+        
         if ing:
             b = ">"
         else:
             b = " "
-
+        
         me = self.api.user["screen_name"]
         self.stdcur.addstr("@%s %s===%s @%s" % (me, a, b, user))
-            
+        self.stdcur.getch()
+
+    def dmessage(self, user):
+        self.clear_head()
+        self.stdcur.addstr("D %s " % user)
+        message = self.getstr()
+        
+        self.clear_head()
+        self.stdcur.addstr("Sending Direct Message: ")
+        self.stdcur.refresh()
+        self.api.dm_new(user, message)
+        self.stdcur.addstr("OK.")
+        self.stdcur.refresh()
+        self.stdcur.getch()
+
+    def detail(self, status):
+        self.clear_head()
+
+        #self.headwin.addstr(0, 0, "[Status Detail]")
+        #self.headwin.clrtoeol()
+
+        self.footwin.addstr(0, 0, statusinfo(status))
+        self.footwin.clrtoeol()
+
+        self.tlwin.clear()
+        self.tlwin.move(0, 0)
+        s = """\
+%s
+(%s)
+%s
+%s
+
+<%s>
+""" % (
+            status["user"]["screen_name"],
+            status["user"]["name"],
+#            status["user"]["following"],
+#            "Protected" if status["user"]["protected"] == "true" else "",
+            "-" * (self.X - 1),
+            status["text"],
+            status["id"],)
+        self.tlwin.addstr(s.encode("utf-8"))
+        self.tlwin.refresh()
+        self.stdcur.getch()
+       
     def tl_show(self, tl):
         self.tlwin.clear()
-
-        ret = []
+        
+        # if Direct Messages?
+        if "sender" in tl[0].keys():
+            dm = True
+            for m in tl:
+                m["user"] = m["sender"]
+        else:
+            dm = False
+        
+        ret = list()
         i = 0
         for s in tl[::-1]:
-            # set curses attr (color)
-            self.tlwin.attrset(attr_select(s, self.api.user))
+            if not dm:
+                # set curses attr (color)
+                self.tlwin.attrset(attr_select(s, self.api.user))
             
             # print screen_name
             sname = "[%7s] " % (s["user"]["screen_name"][0:7])
@@ -425,11 +552,23 @@ Listed: %d""" % (
         self.tlwin.move(0, 0)
         self.tlwin.refresh()
         (Y, X) = self.tlwin.getmaxyx()
+        
+        # if Direct Messages?
+        if "sender" in lpost[0].keys():
+            dm = True
+            for m in lpost:
+                m["user"] = m["sender"]
+        else:
+            dm = False
 
         i = 0
         
         while True:
-            attr = attr_select(lpost[i], self.api.user) & 0xffffff00
+            if not dm:
+                attr = attr_select(lpost[i], self.api.user) & 0xffffff00 
+            else:
+                attr = curses.A_NORMAL
+
             s = self.tlwin.instr(i, 0)
 
             self.tlwin.move(i, 0)
@@ -443,15 +582,16 @@ Listed: %d""" % (
             #self.tlwin.move(i, 0)
             self.tlwin.refresh()
 
-            # print created_at time
-            created_at = twittertime(lpost[i]["created_at"])
-            puttime = str(created_at).split(".")[0]
-            ago = twitterago(created_at)
-            source = twittersource(lpost[i]["source"])
-            # isretweet(lpost[i])
+            # print screen_name
+            u = lpost[i]["user"]
+            p = "[Protected]" if u["protected"] == u"true" else ""
+            h = "@%s (%s) %s" % (u["screen_name"], u["name"], p)
+            self.stdcur.addstr(0, 0, h.encode("utf-8"))
+            self.stdcur.clrtoeol()
+            self.stdcur.refresh()
             
-            footer = "[%s] %s from %s" % (puttime, ago, source.encode("utf-8"))
-            self.footwin.addstr(0, 0, footer)
+            # print created_at time
+            self.footwin.addstr(0, 0, statusinfo(lpost[i]))
             self.footwin.clrtoeol()
             
             curses.flushinp()
@@ -469,10 +609,26 @@ Listed: %d""" % (
                 # Down
                 if i < Y - 1 and i < len(lpost) - 1:
                     p = 1
+                else:
+                    # scroll
+                    self.mode = self.oldmode
+                    self.tmp = list(self.oldtmp)
+                    self.max_id = target["id"]
+                    self.since_id = ""
+                    self.hist.append(lpost[0]["id"])
+                    break
             elif c == curses.KEY_UP:
                 # Up
                 if i > 0:
                     p = -1
+                else:
+                    # scroll
+                    if self.hist:
+                        self.mode = self.oldmode
+                        self.tmp = list(self.oldtmp)
+                        self.max_id = self.hist.pop()
+                        self.since_id = ""
+                        break
             elif c in (curses.KEY_LEFT, curses.KEY_BACKSPACE, 0x1b):
                 # Return
                 break
@@ -503,9 +659,28 @@ Listed: %d""" % (
                 elif c == ord("d"):
                     # Destroy
                     self.destroy(target)
+                elif c == ord("D"):
+                    # Direct Message
+                    self.dmessage(target["user"]["screen_name"])
                 elif c == ord("f"):
+                    # Favorite
+                    self.stdcur.addstr(0, 0, "Favorite: ")
+                    self.stdcur.clrtoeol()
+                    self.api.favorite_create(target["id"])
+                    self.stdcur.addstr("OK. (%s)" % target["id"])
+                    self.stdcur.getch()
+                elif c == ord("F"):
                     # Friendship
                     self.friendship(target["user"]["screen_name"])
+                elif c == ord("t"):
+                    # Show reply_to
+                    if target["in_reply_to_status_id"]:
+                        self.detail(
+                            self.api.status_show(
+                                target["in_reply_to_status_id"]))
+                        break
+                    else:
+                        continue
                 else:
                     continue
             else:
@@ -534,6 +709,6 @@ Listed: %d""" % (
         self.tlwin.clear()
         self.tlwin.refresh()
         
+        self.clear_head()
         self.stdcur.addstr(0, 0, "Loading...")
-        self.stdcur.clrtoeol()
         self.stdcur.refresh()

@@ -31,15 +31,11 @@ import locale
 
 def split_text(s, w):
     i = 0
-    ss = ""
-    sss = []
+    ss = str()
+    sss = list()
     
     for c in s:
-        if 0x00 <= ord(c) <= 0x7f:
-            i += 1
-        else:
-            i += 2
-        
+        i += 1 if 0x00 <= ord(c) <= 0x7f else 2        
         ss += c
         
         if i >= w - 1:
@@ -48,10 +44,10 @@ def split_text(s, w):
             else:
                 sss.append(ss)
             
-            ss = ""
+            ss = str()
             i = 0
     
-    if not ss == "":
+    if ss:
         sss.append(ss)
     
     return sss
@@ -63,7 +59,7 @@ def replace_htmlentity(string):
     
     entity = re.compile("&([A-Za-z]+);")
     entity_match = entity.findall(string)
-
+    
     for name in entity_match:
         c = htmlentitydefs.name2codepoint[name]
         string = string.replace("&%s;" % name, unichr(c))
@@ -71,13 +67,13 @@ def replace_htmlentity(string):
     return string
 
 def delete_notprintable(string):
-    s = ""
-
+    s = str()
+    
     for c in string:
         if (not(0x00 <= ord(c) <= 0x7f)
             or 0x20 <= ord(c) <= 0x7e):
             s += c
-
+    
     return s
 
 def attr_select(post, me):
@@ -170,3 +166,18 @@ def split_user(s, i = 0):
         return match[i]
 
     return None
+
+def statusinfo(status):
+    created_at = twittertime(status["created_at"])
+    puttime = str(created_at).split(".")[0]
+    ago = twitterago(created_at)
+    #isretweet(lpost[i])
+    
+    if "source" in status.keys():
+        source = twittersource(status["source"])
+        footer = "[%s] %s from %s" % (
+            puttime, ago, source.encode("utf-8"))
+    else:
+        footer = "[%s] %s" % (puttime, ago)
+
+    return footer
