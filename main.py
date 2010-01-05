@@ -52,8 +52,13 @@ class twittext():
         self.autoreload = 60000 # ms        
     
     def run(self):
-        # start curses
-        curses.wrapper(self.start)
+        while True:
+            try:
+                # start curses
+                curses.wrapper(self.start)
+                break
+            except curses.error:
+                pass
 
     def init(self):
         # curses init
@@ -116,8 +121,10 @@ class twittext():
                 break
             except urllib2.HTTPError, e:
                 # Twitter over capacity
-                if e.code / 100 == 5:
+                if e.code in (503, 502):
                     message = "Twitter Over Capacity..."
+                elif e.code == 500:
+                    message = "Twitter Server Error..."
                 elif e.code == 400:
                     message = "Twitter REST API Rate Limited!"
                 elif e.code == 404:
@@ -135,7 +142,7 @@ class twittext():
                     curses.color_pair(1) | curses.A_BOLD)
                 self.stdcur.refresh()
                 self.stdcur.getch()
-            except httplib.BadStatusLine:
+            except (httplib.BadStatusLine, urllib2.URLError):
                 self.mode = 0
                 self.clear_head()
                 self.stdcur.addstr(

@@ -34,7 +34,6 @@ import ConfigParser
 import signal
 import urllib2
 import getopt
-import curses
 
 __version__ = 0.5
 
@@ -146,10 +145,4 @@ if __name__ == "__main__":
     
     tw.statusfooter = user["footer"]
     tw.autoreload = int(settings["autoreload"]) * 1000
-
-    while True:
-        try:
-            tw.run()
-            break
-        except curses.error:
-            pass
+    tw.run()
