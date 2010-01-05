@@ -525,14 +525,14 @@ Listed: %d""" % (
             raw_str = replace_htmlentity(raw_str)
             raw_str = delete_notprintable(raw_str)
             
-            (Y, X) = self.tlwin.getmaxyx()
+            (Y, X) = (self.Y - 3, self.X)
             
             # split status text
             sss = split_text(raw_str, X - len(sname))
             sss = sss[0:Y - i]
             
             for ss in sss:
-                if i + 1 >= Y:
+                if i + 1 >= Y and cw_count(ss) + 10 >= X:
                     # last row fix
                     ss = ss[:-1]
                 self.tlwin.addstr(i, 10, ss.encode("utf-8"))
@@ -551,7 +551,7 @@ Listed: %d""" % (
     def tl_select(self, lpost):
         self.tlwin.move(0, 0)
         self.tlwin.refresh()
-        (Y, X) = self.tlwin.getmaxyx()
+        (Y, X) = (self.Y - 3, self.X)
         
         # if Direct Messages?
         if "sender" in lpost[0].keys():
