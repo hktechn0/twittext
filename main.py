@@ -45,8 +45,8 @@ class twittext():
         self.userlastget = datetime.datetime.now()
 
         # init temporary stack
-        self.tmp = []
-        self.hist = []
+        self.tmp = list()
+        self.hist = list()
 
         self.statusfooter = ""
         self.autoreload = 60000 # ms        
@@ -60,7 +60,7 @@ class twittext():
         curses.use_default_colors()
         curses.curs_set(0)
         
-        (self.Y, self.X) = stdcur.getmaxyx()
+        self.Y, self.X = stdcur.getmaxyx()
 
         # define color set
         curses.start_color()
@@ -74,12 +74,12 @@ class twittext():
         self.stdcur.idlok(1)
         self.stdcur.scrollok(True)
         self.stdcur.clear()
-
+        
         self.tlwin = stdcur.subwin(self.Y - 3, self.X, 2, 0)
         self.tlwin.idlok(1)
         self.tlwin.scrollok(True)
         self.tlwin.clear()
-
+        
         self.headwin = stdcur.subwin(1, self.X, 1, 0)
         self.headwin.immedok(True)
         self.headwin.bkgd(" ", curses.color_pair(4))
@@ -92,9 +92,9 @@ class twittext():
 
         self.listed = listed_count(self.api)
 
-        self.hometl = []
-        self.since_id = ""
-        self.max_id = ""
+        self.hometl = list()
+        self.since_id = str()
+        self.max_id = str()
 
         self.mode = 0
         self.stdcur.timeout(self.autoreload)
@@ -118,24 +118,25 @@ class twittext():
                     raise
 
                 self.mode = 0
+                self.clear_head()
                 self.stdcur.addstr(
                     0, 0,
                     "[Error] %s" % message,
                     curses.color_pair(1) | curses.A_BOLD)
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 self.stdcur.getch()
             except httplib.BadStatusLine:
                 self.mode = 0
+                self.clear_head()
                 self.stdcur.addstr(
                     0, 0,
                     "[Error] HTTP Error",
                     curses.color_pair(1) | curses.A_BOLD)
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 self.stdcur.getch()
     
     def home(self):
-        if self.mode >= 0:
-            self.headwin.clear()
+        if self.mode >= 0: self.headwin.clear()
         self.footwin.clear()
         
         # Header
@@ -227,27 +228,26 @@ Listed: %d""" % (
         while True:
             # key input
             curses.flushinp()
+
             key = self.stdcur.getch(0, 7)
             
             if key == curses.KEY_DOWN:
                 # Post Select Mode
-                if lshow:
-                    self.tl_select(lshow)
+                if lshow: self.tl_select(lshow)
             elif key in (curses.KEY_ENTER, 0x0a):
                 # Update Status
                 self.stdcur.move(0, 7)
                 self.stdcur.clrtoeol()
                 status = self.getstr()
-                
-                if status:
-                    self.post(status)
+                if status: self.post(status)
             elif key == ord("@"):
                 # Show Reply
                 self.mode = 1
             elif key == ord("u"):
                 # User Timeline
+                self.clear_head()
                 self.stdcur.addstr(0, 0, "User?: @")
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 user = self.getstr()
                 self.tmp.append(user)
                 self.mode = 2
@@ -256,13 +256,12 @@ Listed: %d""" % (
                 self.mode = 4
             elif key == ord("r"):
                 # Retweet
+                self.clear_head()
                 self.stdcur.addstr(
                     0, 0, """\
 1: Retweets by others, \
 2: Retweets by you, \
 3: Your tweets, retweeted""")
-                self.stdcur.clrtoeol()
-                
                 n = self.stdcur.getch() - ord("0")
                 if n in (1, 2, 3):
                     self.mode = 3
@@ -272,8 +271,9 @@ Listed: %d""" % (
                 self.mode = 5
             elif key == ord("F"):
                 # Friendship
+                self.clear_head()
                 self.stdcur.addstr(0, 0, "User?: @")
-                self.stdcur.clrtoeol()
+                self.stdcur.refresh()
                 user = self.getstr()
                 self.friendship(user)
                 self.stdcur.getch()
@@ -290,9 +290,9 @@ Listed: %d""" % (
                 self.mode = 7
             elif key == ord("D"):
                 # Send Direct Message
-                self.stdcur.move(0, 0)
-                self.stdcur.clrtoeol()
+                self.clear_head()
                 self.stdcur.addstr("D User?: ")
+                self.stdcur.refresh()
                 user = self.getstr()
                 if user:
                     self.dmessage(user)
@@ -321,10 +321,10 @@ Listed: %d""" % (
         return s.encode("utf-8")
     
     def post(self, status, error = 0):
+        self.clear_head()
         self.stdcur.addstr(0, 0, "Updating Status...")
-        self.stdcur.clrtoeol()
         self.stdcur.refresh()
-
+        
         post = "%s %s" % (
             status,
             self.statusfooter)
@@ -342,10 +342,13 @@ Listed: %d""" % (
                 raise
         else:
             self.stdcur.addstr(" OK.")
+
+        self.stdcur.refresh()
     
     def reply(self, status):
+        self.clear_head()
         self.stdcur.addstr(0, 0, "Reply: ")
-        self.stdcur.clrtoeol()
+        self.stdcur.refresh()
 
         name = status["user"]["screen_name"]
         reply_to = status["id"]
@@ -356,8 +359,8 @@ Listed: %d""" % (
         message = self.getstr()
         
         if message:
+            self.clear_head()
             self.stdcur.addstr(0, 0, "Reply... ")
-            self.stdcur.clrtoeol()
             self.stdcur.refresh()
 
             reply = ("%s%s" % (
@@ -366,25 +369,26 @@ Listed: %d""" % (
                 reply, in_reply_to_status_id = reply_to)
             
             self.stdcur.addstr("OK. (%s)" % post["id"])
+            self.stdcur.refresh()
             self.stdcur.getch()
 
     def retweet(self, _id):
-        self.stdcur.move(0, 0)
-        self.stdcur.clrtoeol()
+        self.clear_head()
         self.stdcur.addstr("Retweet? (Y/n)")
+        self.stdcur.refresh()
 
         if self.stdcur.getch() != ord("n"):
+            self.clear_head()
             self.stdcur.addstr(0, 0, "Retweet... ")
-            self.stdcur.clrtoeol()
             self.stdcur.refresh()
 
             self.api.status_retweet(_id)
             self.stdcur.addstr("OK.")
+            self.stdcur.refresh()
             self.stdcur.getch()
     
     def quotetweet(self, status):
-        self.stdcur.move(0, 0)
-        self.stdcur.clrtoeol()
+        self.clear_head()
         self.stdcur.addstr("QT: ")
         message = self.getstr().decode("utf-8")
         
@@ -495,7 +499,7 @@ Listed: %d""" % (
         else:
             dm = False
         
-        ret = []
+        ret = list()
         i = 0
         for s in tl[::-1]:
             if not dm:
@@ -695,6 +699,6 @@ Listed: %d""" % (
         self.tlwin.clear()
         self.tlwin.refresh()
         
+        self.clear_head()
         self.stdcur.addstr(0, 0, "Loading...")
-        self.stdcur.clrtoeol()
         self.stdcur.refresh()
