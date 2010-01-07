@@ -164,7 +164,7 @@ class twittext():
         self.headwin.addstr(0, self.X - len(header) - 1, header)
         
         # Footer
-        if (self.userlastget - datetime.datetime.now()).seconds > 300:
+        if (datetime.datetime.now() - self.userlastget).seconds > 300:
             me = self.api.user_show(self.api.user["screen_name"])
             self.api.user = me
             self.userlastget = datetime.datetime.now()
