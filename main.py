@@ -157,9 +157,11 @@ class twittext():
         self.footwin.clear()
         
         # Header
-        header = "%d/%d (@%s) [Twittext]" % (
+        header = "%d/%d %d/%d (@%s) [Twittext]" % (
             self.api.ratelimit_remaining,
             self.api.ratelimit_limit,
+            self.api.ratelimit_ipremaining,
+            self.api.ratelimit_iplimit,
             self.api.user["screen_name"])
         self.headwin.addstr(0, self.X - len(header) - 1, header)
         
