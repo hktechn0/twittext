@@ -33,7 +33,7 @@ import locale
 import ConfigParser
 import signal
 import urllib2
-import getopt
+import optparse
 
 __version__ = 0.5
 
@@ -54,27 +54,21 @@ For more information about these matters, see the file named COPYING.""" % {
         "copyright" : "Hirotaka Kawata",
         }
 
-def print_usage():
-    print """\
-Usage:
-twittext [--add]
-twittext [-u username] [--user=username]
-twittext [-v]"""
-
 if __name__ == "__main__":
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "u:v",
-                                   ("user=", "version", "add"))
-    except getopt.GetoptError, e:
-        print >>sys.stderr, "[Error]", e
-        print_usage()
-        exit()
+    p = optparse.OptionParser()
+    p.add_option("-u", "--user", dest="user", 
+                 help="choose auth user", metavar="USER")
+    p.add_option("--add", dest="add", action="store_true", 
+                 help="add new user")
+    p.add_option("-v", "--version", dest="version", 
+                 action="store_true", help="print version")
+    
+    (options, args) = p.parse_args()
     
     # print version
-    for v in ("--version", "-v"):
-        if v in sys.argv:
-            print_version()
-            exit()
+    if options.version:
+        print_version()
+        exit()
     
     config_default = {
         "ckey": '3vqTk4hvNAno7NGzgBpdg',
@@ -86,14 +80,14 @@ if __name__ == "__main__":
     conf_path  = os.path.join(
         os.path.dirname(__file__), conf_name)
     conf = ConfigParser.SafeConfigParser(config_default)
-
+    
     add = False
     first = False
     
     if not os.path.isfile(conf_path):
         # settings does not exist
         first = True
-    elif "--add" in sys.argv:
+    elif options.add:
         # User Add
         add = True
         conf.read(conf_path)
@@ -123,12 +117,12 @@ if __name__ == "__main__":
     
     conf.read(conf_path)
     settings = dict(conf.items("DEFAULT"))
-    user_name = settings["default_user"]
     
-    for o, v in opts:
-        if o in ("-u", "--user"):
-            user_name = v
-            break
+    if options.user != None:
+        # -u, --user option
+        user_name = options.user
+    else:
+        user_name = settings["default_user"]
     
     user = dict(conf.items(user_name))
     
