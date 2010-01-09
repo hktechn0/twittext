@@ -100,6 +100,7 @@ class twittext():
         self.max_id = str()
 
         self.mode = 0
+        self.oldmode = -1
         self.stdcur.timeout(self.autoreload)
 
     def start(self, stdcur):
@@ -184,6 +185,10 @@ Listed: %d""" % (
         self.footwin.addstr(0, 0, userinfo)
 
         if self.mode != -1:
+            # clear scroll hist
+            if self.oldmode != self.mode:
+                self.hist = list()
+
             # Backup for scroll
             self.oldmode = self.mode
             self.oldtmp = list(self.tmp)

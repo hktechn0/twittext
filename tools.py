@@ -182,3 +182,11 @@ def statusinfo(status):
         footer = "[%s] %s" % (puttime, ago)
 
     return footer
+
+def dputs(*args):
+    fp = open("debug", 'a')
+    l = list()
+    for i in args:
+        l.append(str(i))
+    fp.write("%s\n" % " ".join(l))
+    fp.close()
