@@ -78,9 +78,10 @@ def delete_notprintable(string):
 
 def attr_select(post, me):
     user = post["user"]["screen_name"]
-    reply_to = post["in_reply_to_screen_name"]
+    reply_to = post["in_reply_to_screen_name"] if (
+        "in_reply_to_screen_name" in post.keys()) else None
     myname = me["screen_name"]
-
+    
     # Color Change
     if user == myname:
         # my status

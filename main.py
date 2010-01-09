@@ -73,6 +73,7 @@ class twittext():
         curses.init_pair(2, curses.COLOR_GREEN, -1)
         curses.init_pair(3, curses.COLOR_CYAN, -1)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLUE)
+        curses.init_pair(5, curses.COLOR_YELLOW, -1)
 
         self.stdcur.idlok(1)
         self.stdcur.scrollok(True)
@@ -190,11 +191,18 @@ Listed: %d""" % (
         # timeline mode
         if self.mode == 0:
             self.loading("Home Timeline")
-            self.hometl.extend(self.api.home_timeline(
-                    count = self.Y, 
-                    since_id = self.since_id, max_id = self.max_id))
+            
+            newtl = self.api.home_timeline(
+                count = self.Y, 
+                since_id = self.since_id, max_id = self.max_id)
+            self.newcnt = len(newtl) \
+                if not self.max_id and self.since_id else 0
+            
+            self.hometl.extend(newtl)
             self.tl = self.hometl
-            self.since_id = self.hometl[-1]["id"]
+            
+            if not self.max_id:
+                self.since_id = self.hometl[-1]["id"]
         elif self.mode == 1:
             self.loading("Tweets mentioning @%s" % 
                          (self.api.user["screen_name"]))
@@ -521,9 +529,19 @@ Listed: %d""" % (
         ret = list()
         i = 0
         for s in tl[::-1]:
-            if not dm:
-                # set curses attr (color)
-                self.tlwin.attrset(attr_select(s, self.api.user))
+            # curses attr (color)
+            attr = attr_select(s, self.api.user)
+            
+            # new status
+            if self.newcnt:
+                self.newcnt -= 1
+                if attr == curses.A_NORMAL:
+                    attr = curses.A_BOLD | curses.color_pair(5)
+                else:
+                    attr |= curses.A_BOLD
+            
+            # set attr
+            self.tlwin.attrset(attr)
             
             # print screen_name
             sname = "[%7s] " % (s["user"]["screen_name"][0:7])
@@ -569,28 +587,26 @@ Listed: %d""" % (
                 m["user"] = m["sender"]
         else:
             dm = False
-
+        
         i = 0
         
         while True:
-            if not dm:
-                attr = attr_select(lpost[i], self.api.user) & 0xffffff00 
-            else:
-                attr = curses.A_NORMAL
-
+            attr = attr_select(lpost[i], self.api.user) & 0xffffff00
+            
             s = self.tlwin.instr(i, 0)
-
+            
             self.tlwin.move(i, 0)
             self.tlwin.clrtoeol()
+            
             if i + 1 >= Y:
                 # last row fix
                 self.tlwin.addstr(s[:-1], attr | curses.A_STANDOUT)
             else:
                 self.tlwin.addstr(s, attr | curses.A_STANDOUT)
-                            
+            
             #self.tlwin.move(i, 0)
             self.tlwin.refresh()
-
+            
             # print screen_name
             u = lpost[i]["user"]
             p = "[Protected]" if u["protected"] == u"true" else ""
@@ -605,15 +621,15 @@ Listed: %d""" % (
             
             curses.flushinp()
             c = self.stdcur.getch(0, 0)
-
+            
             if len(lpost) <= i:
                 target = None
             else:
                 target = lpost[i]
-
+            
             # cursor point
             p = 0
-
+            
             if c == curses.KEY_DOWN:
                 # Down
                 if i < Y - 1 and i < len(lpost) - 1:
