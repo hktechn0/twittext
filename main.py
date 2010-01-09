@@ -240,7 +240,8 @@ Listed: %d""" % (
 #            self.tl = pass
         elif self.mode == 7:
             self.loading("Direct messages sent only to you")
-            self.tl = self.api.dm_list()
+            self.tl = self.api.dm_list(count = self.Y,
+                                       max_id = self.max_id)
         
         # print header
         self.stdcur.addstr(0, 0, "Post?: ")
@@ -634,7 +635,7 @@ Listed: %d""" % (
                 # Down
                 if i < Y - 1 and i < len(lpost) - 1:
                     p = 1
-                else:
+                elif i == Y - 1:
                     # scroll
                     self.mode = self.oldmode
                     self.tmp = list(self.oldtmp)
@@ -646,14 +647,13 @@ Listed: %d""" % (
                 # Up
                 if i > 0:
                     p = -1
-                else:
+                elif self.hist:
                     # scroll
-                    if self.hist:
-                        self.mode = self.oldmode
-                        self.tmp = list(self.oldtmp)
-                        self.max_id = self.hist.pop()
-                        self.since_id = ""
-                        break
+                    self.mode = self.oldmode
+                    self.tmp = list(self.oldtmp)
+                    self.max_id = self.hist.pop()
+                    self.since_id = ""
+                    break
             elif c in (curses.KEY_LEFT, curses.KEY_BACKSPACE, 0x1b):
                 # Return
                 break
