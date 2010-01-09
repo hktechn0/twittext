@@ -519,7 +519,7 @@ Listed: %d""" % (
         self.tlwin.clear()
         
         # if Direct Messages?
-        if "sender" in tl[0].keys():
+        if "sender" in tl[0].keys() if tl else ():
             dm = True
             for m in tl:
                 m["user"] = m["sender"]
