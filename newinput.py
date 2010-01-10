@@ -55,8 +55,8 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
         c = stdcur.getch()
 
         if c == 0x0a:
-            break
-        elif c == curses.KEY_BACKSPACE:
+            break # \n
+        elif c in (curses.KEY_BACKSPACE, 0x08):
             if i <= 0: continue            
             s = s[:i - 1] + s[i:]
             i -= 1
