@@ -36,8 +36,8 @@ import httplib
 
 class twittext():
     from home import home
-    from show import tl_show
-    from select import tl_select
+    from tl_show import tl_show
+    from tl_select import tl_select
     
     def __init__(self, ckey, csecret, atoken, asecret):
         locale.setlocale(locale.LC_ALL, "")
