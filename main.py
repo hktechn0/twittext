@@ -166,14 +166,14 @@ class twittext():
         self.stdcur.timeout(-1)
         s = mbgetstr(self.stdcur, *args)
         self.stdcur.timeout(self.autoreload)
-        return s.encode("utf-8")
+        return unicode(s)
     
     def post(self, status, error = 0):
         self.clear_head()
         self.stdcur.addstr(0, 0, "Updating Status...")
         self.stdcur.refresh()
         
-        post = "%s %s" % (
+        post = u"%s %s" % (
             status,
             self.statusfooter)
 
@@ -212,8 +212,7 @@ class twittext():
             self.stdcur.addstr(0, 0, "Reply... ")
             self.stdcur.refresh()
 
-            reply = ("%s%s" % (
-                    replyhead, message.decode("utf-8"))).encode("utf-8")
+            reply = u"%s%s" % (replyhead, message)
             post = self.api.status_update(
                 reply, in_reply_to_status_id = reply_to)
             
@@ -239,12 +238,12 @@ class twittext():
     def quotetweet(self, status):
         self.clear_head()
         self.stdcur.addstr("QT: ")
-        message = self.getstr().decode("utf-8")
+        message = self.getstr()
         
         if message:
-            qt = "%s QT: @%s: %s" % (
+            qt = u"%s QT: @%s: %s" % (
                 message, status["user"]["screen_name"], status["text"])
-            self.post(qt.encode("utf-8"))
+            self.post(qt)
     
     def destroy(self, status):
         self.clear_head()
@@ -299,13 +298,13 @@ class twittext():
 
     def detail(self, status):
         self.clear_head()
-
+        
         #self.headwin.addstr(0, 0, "[Status Detail]")
         #self.headwin.clrtoeol()
-
+        
         self.footwin.addstr(0, 0, statusinfo(status))
         self.footwin.clrtoeol()
-
+        
         self.tlwin.clear()
         self.tlwin.move(0, 0)
         s = "%s\n(%s)\n\n%s\n%s\n\n<%s>" % (
@@ -319,11 +318,11 @@ class twittext():
         self.tlwin.addstr(s.encode("utf-8"))
         self.tlwin.refresh()
         self.stdcur.getch()
-
+    
     def loading(self, name):
         self.tlname = name
         self.headwin.addstr(0, 0, "[%s]" % name)
-
+        
         self.tlwin.clear()
         self.tlwin.refresh()
         

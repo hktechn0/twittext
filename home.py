@@ -49,7 +49,7 @@ def home(self):
 
     userinfo = """\
 Total: %s tweets, \
-Following: %s, Followers %s, \
+Following: %s, Followers: %s, \
 Listed: %d""" % (
         me["statuses_count"], 
         me["friends_count"], me["followers_count"],

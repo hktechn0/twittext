@@ -60,14 +60,14 @@ def tl_select(self, lpost):
 
         # print screen_name
         u = lpost[i]["user"]
-        p = "[Protected]" if u["protected"] == u"true" else ""
-        h = "@%s (%s) %s" % (u["screen_name"], u["name"], p)
+        p = u"[Protected]" if u["protected"] == u"true" else u""
+        h = u"@%s (%s) %s" % (u["screen_name"], u["name"], p)
         self.stdcur.addstr(0, 0, h.encode("utf-8"))
         self.stdcur.clrtoeol()
         self.stdcur.refresh()
 
         # print created_at time
-        self.footwin.addstr(0, 0, statusinfo(lpost[i]))
+        self.footwin.addstr(0, 0, str(statusinfo(lpost[i]).encode("utf-8")))
         self.footwin.clrtoeol()
 
         curses.flushinp()

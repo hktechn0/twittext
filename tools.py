@@ -31,10 +31,10 @@ import locale
 
 def split_text(s, w):
     i = 0
-    ss = str()
+    ss = unicode()
     sss = list()
     
-    for c in s:
+    for c in unicode(s):
         i += 1 if 0x00 <= ord(c) <= 0x7f else 2        
         ss += c
         
@@ -44,7 +44,7 @@ def split_text(s, w):
             else:
                 sss.append(ss)
             
-            ss = str()
+            ss = unicode()
             i = 0
     
     if ss:
@@ -67,9 +67,9 @@ def replace_htmlentity(string):
     return string
 
 def delete_notprintable(string):
-    s = str()
+    s = unicode()
     
-    for c in string:
+    for c in unicode(string):
         if (not(0x00 <= ord(c) <= 0x7f)
             or 0x20 <= ord(c) <= 0x7e):
             s += c
@@ -141,7 +141,7 @@ def twitterago(time):
 
 def twittersource(source):
     if source == "web":
-        return "web"
+        return u"web"
     else:
         return source.split(">")[1].split("<")[0]
 
@@ -170,16 +170,16 @@ def split_user(s, i = 0):
 
 def statusinfo(status):
     created_at = twittertime(status["created_at"])
-    puttime = str(created_at).split(".")[0]
+    puttime = unicode(created_at).split(".")[0]
     ago = twitterago(created_at)
     #isretweet(lpost[i])
     
     if "source" in status.keys():
         source = twittersource(status["source"])
-        footer = "[%s] %s from %s" % (
-            puttime, ago, source.encode("utf-8"))
+        footer = u"[%s] %s from %s" % (
+            puttime, ago, source)
     else:
-        footer = "[%s] %s" % (puttime, ago)
+        footer = u"[%s] %s" % (puttime, ago)
 
     return footer
 
@@ -187,6 +187,6 @@ def dputs(*args):
     fp = open("debug", 'a')
     l = list()
     for i in args:
-        l.append(str(i))
-    fp.write("%s\n" % " ".join(l))
+        l.append(unicode(i))
+    fp.write("%s\n" % " ".join(l).encode("utf-8"))
     fp.close()

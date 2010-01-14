@@ -29,7 +29,7 @@ import curses
 
 # usage: newinput.mbgetstr(win, [y, x])
 def mbgetstr(stdcur, sety = None, setx = None, debug = False):
-    s = u""
+    s = unicode()
     i = 0
     
     curses.noecho()
@@ -53,7 +53,7 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
             stdcur.move(y, x)
         
         c = stdcur.getch()
-
+        
         if c == 0x0a:
             break # \n
         elif c in (curses.KEY_BACKSPACE, 0x08):
@@ -88,12 +88,12 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
             if isascii(c) and not isprintable(c):
                 continue
             
-            s = s[:i] + c + s[i:]
+            s = u"%s%s%s" % (s[:i], c, s[i:])
             i += 1
             rewrite_text(stdcur, setx, sety, s, i)
     
     curses.curs_set(0)
-
+    
     return s
 
 def utf2ucs(utf):
