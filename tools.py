@@ -139,12 +139,6 @@ def twitterago(time):
     else:
         return "Just now!"
 
-def twittersource(source):
-    if source == "web":
-        return u"web"
-    else:
-        return source.split(">")[1].split("<")[0]
-
 def isretweet(status):
     return "retweeted_status" in status.keys()
 
@@ -175,7 +169,7 @@ def statusinfo(status):
     #isretweet(lpost[i])
     
     if "source" in status.keys():
-        source = twittersource(status["source"])
+        source = status.source_name
         footer = u"[%s] %s from %s" % (
             puttime, ago, source)
     else:
