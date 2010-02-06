@@ -6,7 +6,7 @@
 # - Hirotaka Kawata <info@techno-st.net>
 # - http://www.techno-st.net/wiki/Twittext
 #
-#    Copyright (C) 2009 Hirotaka Kawata <info@techno-st.net>
+#    Copyright (C) 2009-2010 Hirotaka Kawata <info@techno-st.net>
 #
 #    This file is part of "Twittext".
 #

@@ -1,5 +1,5 @@
 ************************************************************
- - Twittext [v0.5]
+ - Twittext [v0.51]
  -- Simple test-based Twitter Client
 
  -- Hirotaka Kawata <info@techno-st.net>
@@ -8,7 +8,7 @@
 
 - Licence
 -- GPLv3
--- Copyright (C) 2009 Hirotaka Kawata
+-- Copyright (C) 2009-2010 Hirotaka Kawata
 
 - Require
 -- Python (>= 2.5)
@@ -34,7 +34,10 @@ h Key - Show (Update) Home Timeline
 r Key - Show retweets
 p Key - Show public timeline
 u Key - Show user timeline
-f Key - Friendship check
+f Key - Show your favorites
+d Key - Show Direct Messages
+D Key - Send direct message
+F Key - Friendship check
 q Key - Quit
 Key Down
       - To Status Selection Mode
@@ -45,18 +48,22 @@ r Key - Retweet (Using retweet API method)
 q Key - Quote tweet
 u Key - User timeline
 U Key - Reply_to user timeline
+t Key - Show reply_to status
 d Key - Destroy status
-f Key - Friendship check
+D Key - Send direct message
+f Key - Favorite status
+F Key - Friendship check
 Key Left (<=)
       - Return to Command Mode
 
 == Key alias ==
 Space -> Updte Home Timeline
-Key Right -> Updte Home Timeline
+Key Left -> Updte Home Timeline
 
 Enter -> Reply
 Escape -> To Command Mode
 Backspace -> To Command Mode
+Key Right -> Show User Timeline
 
 
 - Notice

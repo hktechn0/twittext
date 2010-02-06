@@ -7,7 +7,7 @@
 # - Hirotaka Kawata <info@techno-st.net>
 # - http://www.techno-st.net/wiki/Twittext
 #
-#    Copyright (C) 2009 Hirotaka Kawata <info@techno-st.net>
+#    Copyright (C) 2009-2010 Hirotaka Kawata <info@techno-st.net>
 #
 #    This file is part of "Twittext".
 #
@@ -35,7 +35,7 @@ import signal
 import urllib2
 import optparse
 
-__version__ = 0.5
+__version__ = 0.51
 
 def quit_me(signum = None, frame = None):
     exit()
