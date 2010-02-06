@@ -32,16 +32,17 @@ def mbgetstr(stdcur, sety = None, setx = None, debug = False):
     s = unicode()
     i = 0
     
-    curses.noecho()
-    curses.curs_set(1)
-    curses.flushinp()
+    rewrite_text.old = (0, 0)
+    curses.flushinp()    
     
-    (maxy, maxx) = stdcur.getmaxyx()
-
     if sety == None and setx == None:
         (sety, setx) = stdcur.getyx()
     else:
         stdcur.move(sety, setx)
+    
+    (maxy, maxx) = stdcur.getmaxyx()
+    curses.noecho()
+    curses.curs_set(1)
     
     while True:
         (y, x) = stdcur.getyx()
@@ -169,10 +170,10 @@ def exstr_width(string, cnt):
 def rewrite_text(stdcur, setx, sety, s, i):
     (maxy, maxx) = stdcur.getmaxyx()
     (os, oe) = rewrite_text.old
-
+    
     stdcur.move(sety, setx)
     stdcur.clrtoeol()
-
+    
     if os <= i <= oe:
         stdcur.addstr(s[os:i].encode('utf-8'))
         (y, x) = stdcur.getyx()
@@ -203,7 +204,7 @@ def _test(stdcur):
     stdcur.getch()
 
 # init
-rewrite_text.old = (-1, -1)
+rewrite_text.old = (0, 0)
 
 if __name__ == '__main__':
     import locale
