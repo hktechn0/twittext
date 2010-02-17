@@ -137,6 +137,6 @@ if __name__ == "__main__":
         print >>sys.stderr, "[Error] Cannot connect Twitter."
         exit()
     
-    tw.statusfooter = user["footer"]
+    tw.statusfooter = unicode(user["footer"].decode("utf-8"))
     tw.autoreload = int(settings["autoreload"]) * 1000
     tw.run()

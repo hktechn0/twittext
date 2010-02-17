@@ -51,7 +51,7 @@ class twittext():
         self.tmp = list()
         self.hist = list()
 
-        self.statusfooter = ""
+        self.statusfooter = u""
         self.autoreload = 60000 # ms        
     
     def run(self):
