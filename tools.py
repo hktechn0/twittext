@@ -142,7 +142,12 @@ def twitterago(time):
 def isretweet(status):
     return "retweeted_status" in status.keys()
 
-def listed_count(api):
+def listed_count_background(api, ret):
+    th = threading.Thread(target = listed_count, args = (api, ret))
+    th.isDaemon()
+    th.start()
+
+def listed_count(api, ret = None):
     listed = 0
     cursor = -1
 
@@ -152,6 +157,8 @@ def listed_count(api):
         listed += len(lists["lists"])
         if cursor <= 0:
             break
+
+    if ret != None: ret = listed
         
     return listed
 

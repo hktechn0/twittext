@@ -132,7 +132,7 @@ if __name__ == "__main__":
     # Start
     try:
         tw = twittext(settings["ckey"], settings["csecret"],
-                      user["atoken"], user["asecret"])
+                      user["atoken"], user["asecret"], user_name)
     except urllib2.URLError:
         print >>sys.stderr, "[Error] Cannot connect Twitter."
         exit()

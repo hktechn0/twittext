@@ -39,21 +39,22 @@ class twittext():
     from tl_show import tl_show
     from tl_select import tl_select
     
-    def __init__(self, ckey, csecret, atoken, asecret):
+    def __init__(self, ckey, csecret, atoken, asecret, screen_name):
         locale.setlocale(locale.LC_ALL, "")
 
         # twitter api instance
         self.api = twoauth.api(
-            ckey, csecret, atoken, asecret)
-        self.userlastget = datetime.datetime.now()
-
+            ckey, csecret, atoken, asecret, screen_name)
+        self.userlastget = datetime.datetime.min
+        self.listed = -1
+        
         # init temporary stack
         self.tmp = list()
         self.hist = list()
 
         self.statusfooter = u""
-        self.autoreload = 60000 # ms        
-    
+        self.autoreload = 60000 # ms
+
     def run(self):
         while True:
             try:
@@ -112,7 +113,7 @@ class twittext():
         self.init()
         
         try:
-            self.listed = listed_count(self.api)
+            listed_count_background(self.api, self.listed)
         except:
             self.listed = -1
 

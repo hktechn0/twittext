@@ -29,7 +29,7 @@ from newinput import *
 def home(self):
     if self.mode >= 0: self.headwin.clear()
     self.footwin.clear()
-
+    
     # Header
     header = "%d/%d %d/%d (@%s) [Twittext]" % (
         self.api.ratelimit_remaining,
@@ -38,10 +38,10 @@ def home(self):
         self.api.ratelimit_iplimit,
         self.api.user["screen_name"])
     self.headwin.addstr(0, self.X - len(header) - 1, header)
-
+    
     # Footer
     if (datetime.datetime.now() - self.userlastget).seconds > 300:
-        me = self.api.user_show(self.api.user["screen_name"])
+        me = self.api.verify_credentials()
         self.api.user = me
         self.userlastget = datetime.datetime.now()
     else:
