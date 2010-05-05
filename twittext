@@ -26,16 +26,24 @@
 #
 ###########################################################################
 
-import twoauth
 import os
 import sys
 import locale
-import ConfigParser
 import signal
 import urllib2
 import optparse
 
+import twtxt
+
 __version__ = 0.51
+
+conf_name = 'twittext.conf'
+conf_default = {
+    "ckey": '3vqTk4hvNAno7NGzgBpdg',
+    "csecret": 'PaeZx823Laxz3L5OF1R32zk9klW92tVyqn5mXjAoIw',
+    "autoreload" : "60",
+    "default_user" : "",
+    }
 
 def quit_me(signum = None, frame = None):
     exit()
@@ -55,6 +63,9 @@ For more information about these matters, see the file named COPYING.""" % {
         }
 
 if __name__ == "__main__":
+    conf_path  = os.path.join(
+        os.path.dirname(__file__), conf_name)
+    
     p = optparse.OptionParser()
     p.add_option("-u", "--user", dest="user", 
                  help="choose auth user", metavar="USER")
@@ -70,73 +81,28 @@ if __name__ == "__main__":
         print_version()
         exit()
     
-    config_default = {
-        "ckey": '3vqTk4hvNAno7NGzgBpdg',
-        "csecret": 'PaeZx823Laxz3L5OF1R32zk9klW92tVyqn5mXjAoIw',
-        "autoreload" : "60",
-        }
+    # settings does not exist    
+    first = True if not os.path.isfile(conf_path) else False
+    # User Add
+    add = True if options.add else False
     
-    conf_name = 'settings.conf'
-    conf_path  = os.path.join(
-        os.path.dirname(__file__), conf_name)
-    conf = ConfigParser.SafeConfigParser(config_default)
-    
-    add = False
-    first = False
-    
-    if not os.path.isfile(conf_path):
-        # settings does not exist
-        first = True
-    elif options.add:
-        # User Add
-        add = True
-        conf.read(conf_path)
+    # Read settings
+    if first: conf = twtxt.settings(conf_default)
+    else:     conf = twtxt.settings.open(conf_path)
     
     if add or first:
         # Get Access Token
-        from gettoken import *
-        (atoken, asecret, screen_name) = token(
-            config_default["ckey"], 
-            config_default["csecret"])    
-
-        conf.add_section(screen_name)
-        conf.set(screen_name, "atoken", atoken)
-        conf.set(screen_name, "asecret", asecret)
-        conf.set(screen_name, "footer", "")
-        
-        if first:
-            conf.set("DEFAULT", "default_user", screen_name)
-        
-        fp = open(conf_path, "w")
-        conf.write(fp)
-        fp.close()
-
-        if add: exit()
-    
-    from main import *
-    
-    conf.read(conf_path)
-    settings = dict(conf.items("DEFAULT"))
+        u = twtxt.token(*conf.get_consumer())
+        conf.add_user(*u)
+        conf.save(conf_path)
+        conf.change_user(u[-1])
     
     if options.user != None:
         # -u, --user option
-        user_name = options.user
-    else:
-        user_name = settings["default_user"]
-    
-    user = dict(conf.items(user_name))
+        conf.change_user(options.user)
     
     # C-c to quit setting
     signal.signal(signal.SIGINT, quit_me)
     
     # Start
-    try:
-        tw = twittext(settings["ckey"], settings["csecret"],
-                      user["atoken"], user["asecret"], user_name)
-    except urllib2.URLError:
-        print >>sys.stderr, "[Error] Cannot connect Twitter."
-        exit()
-    
-    tw.statusfooter = unicode(user["footer"].decode("utf-8"))
-    tw.autoreload = int(settings["autoreload"]) * 1000
-    tw.run()
+    twtxt.main(conf)

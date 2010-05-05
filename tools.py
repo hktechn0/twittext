@@ -26,168 +26,79 @@
 import re
 import htmlentitydefs
 import curses
-import datetime
-import locale
 
-def split_text(s, w):
-    i = 0
-    ss = unicode()
-    sss = list()
-    
-    for c in unicode(s):
-        i += 1 if 0x00 <= ord(c) <= 0x7f else 2        
-        ss += c
+class cursesTools:
+    def split_text(s, w):
+        i = 0
+        ss = unicode()
+        sss = list()
         
-        if i >= w - 1:
-            if len(sss) == 0:
-                sss = [ss]
-            else:
-                sss.append(ss)
-            
-            ss = unicode()
-            i = 0
+        for c in unicode(s):
+            i += 1 if 0x00 <= ord(c) <= 0x7f else 2        
+            ss += c
+        
+            if i >= w - 1:
+                if len(sss) == 0: sss = [ss]
+                else: sss.append(ss)            
+                ss = unicode()
+                i = 0
     
-    if ss:
-        sss.append(ss)
-    
-    return sss
+        if ss: sss.append(ss)
+        return sss
 
-def replace_htmlentity(string):
-    amp = string.find('&')
-    if amp == -1:
+    def replace_htmlentity(string):
+        amp = string.find('&')
+        if amp == -1:
+            return string
+
+        entity = re.compile("&([A-Za-z]+);")
+        entity_match = entity.findall(string)
+
+        for name in entity_match:
+            c = htmlentitydefs.name2codepoint[name]
+            string = string.replace("&%s;" % name, unichr(c))
+
         return string
-    
-    entity = re.compile("&([A-Za-z]+);")
-    entity_match = entity.findall(string)
-    
-    for name in entity_match:
-        c = htmlentitydefs.name2codepoint[name]
-        string = string.replace("&%s;" % name, unichr(c))
-    
-    return string
 
-def delete_notprintable(string):
-    s = unicode()
-    
-    for c in unicode(string):
-        if (not(0x00 <= ord(c) <= 0x7f)
-            or 0x20 <= ord(c) <= 0x7e):
-            s += c
-    
-    return s
+    def delete_notprintable(string):
+        s = unicode()
 
-def attr_select(post, me):
-    user = post["user"]["screen_name"]
-    reply_to = post["in_reply_to_screen_name"] if (
-        "in_reply_to_screen_name" in post.keys()) else None
-    myname = me["screen_name"]
-    
-    # Color Change
-    if user == myname:
-        # my status
-        return curses.color_pair(3)
-    elif reply_to == myname:
-        # reply to me
-        return (curses.color_pair(1) | curses.A_BOLD)
-    else:
-        at = post["text"].find("@%s" % myname)
-        if at == 0:
-            # reply to me, but no in_reply_to
-            return curses.color_pair(1)
-        elif at != -1:
-            # maybe Retweet
-            return curses.color_pair(2)
-    
-    return 0
+        for c in unicode(string):
+            if (not(0x00 <= ord(c) <= 0x7f)
+                or 0x20 <= ord(c) <= 0x7e):
+                s += c
 
-def twittertime(timestr):
-    format = "%a %b %d %H:%M:%S +0000 %Y"
-    locale.setlocale(locale.LC_ALL, "C")
-    dt = datetime.datetime.strptime(timestr, format)
-    locale.setlocale(locale.LC_ALL, "")
-    tz = datetime.datetime.now() - datetime.datetime.utcnow()
-    dt += tz
+        return s
 
-    return dt
+    def attr_select(post, me):
+        user = post["user"]["screen_name"]
+        reply_to = post["in_reply_to_screen_name"] if (
+            "in_reply_to_screen_name" in post.keys()) else None
+        myname = me["screen_name"]
 
-def twitterago(time):
-    ago = datetime.datetime.now() - time
-
-    hours = ago.seconds / 3600
-    minutes = ago.seconds / 60
-
-    if ago.days:
-        if ago.days == 1:
-            return "1 day ago"
+        # Color Change
+        if user == myname:
+            # my status
+            return curses.color_pair(3)
+        elif reply_to == myname:
+            # reply to me
+            return (curses.color_pair(1) | curses.A_BOLD)
         else:
-            return "%d days ago" % ago.days
-    elif hours:
-        if hours == 1:
-            return "1 hour ago"
-        else:
-            return "%d hours ago" % hours
-    elif minutes:
-        if minutes == 1:
-            return "1 minute ago"
-        else:
-            return "%d minutes ago" % minutes
-    elif ago.seconds:
-        if ago.seconds == 1:
-            return "1 second ago"
-        else:
-            return "%d seconds ago" % ago.seconds
-    else:
-        return "Just now!"
+            at = post["text"].find("@%s" % myname)
+            if at == 0:
+                # reply to me, but no in_reply_to
+                return curses.color_pair(1)
+            elif at != -1:
+                # maybe Retweet
+                return curses.color_pair(2)
 
-def isretweet(status):
-    return "retweeted_status" in status.keys()
+        return 0
 
-def listed_count_background(api, ret):
-    th = threading.Thread(target = listed_count, args = (api, ret))
-    th.isDaemon()
-    th.start()
+    def dputs(*args):
+        fp = open("debug", 'a')
+        l = list()
+        for i in args:
+            l.append(unicode(i))
+        fp.write("%s\n" % " ".join(l).encode("utf-8"))
+        fp.close()
 
-def listed_count(api, ret = None):
-    listed = 0
-    cursor = -1
-
-    while True:
-        lists = api.lists_memberships(cursor = cursor)
-        cursor = int(lists["next_cursor"])
-        listed += len(lists["lists"])
-        if cursor <= 0:
-            break
-
-    if ret != None: ret = listed
-        
-    return listed
-
-def split_user(s, i = 0):
-    match = re.findall("@([0-9A-Za-z_]*)", s)
-    if match:
-        return match[i]
-
-    return None
-
-def statusinfo(status):
-    created_at = twittertime(status["created_at"])
-    puttime = unicode(created_at).split(".")[0]
-    ago = twitterago(created_at)
-    #isretweet(lpost[i])
-    
-    if "source" in status.keys():
-        source = status.source_name
-        footer = u"[%s] %s from %s" % (
-            puttime, ago, source)
-    else:
-        footer = u"[%s] %s" % (puttime, ago)
-
-    return footer
-
-def dputs(*args):
-    fp = open("debug", 'a')
-    l = list()
-    for i in args:
-        l.append(unicode(i))
-    fp.write("%s\n" % " ".join(l).encode("utf-8"))
-    fp.close()
