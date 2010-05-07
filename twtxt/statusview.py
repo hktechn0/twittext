@@ -29,32 +29,47 @@ import math
 import copy
 
 import cursestools as ctools
-#from tools import *
-#from newinput import *
 
 class StatusView():
+    CENCODING = "utf-8"
+    timeline = tuple()    
+    offset = 0
+    selected = None
+    
     def __init__(self, win):
         self.win = win
-        self.timeline = tuple()
-        
-        self.offset = 0
-        self.selected = None
         
         (my, mx) = win.getmaxyx()
-        self.wname = win.subwin(my, 10, 0, 0)
-        self.wtext = win.subwin(0, 11)
+        self.wname = win.derwin(my - 1, 10, 0, 0)
+        self.wtext = win.derwin(my - 1, mx - 11, 0, 11)
+        self.winfo = win.derwin(1, mx, my - 1, 0)
+
+        self.winfo.bkgd("-", curses.color_pair(4))
     
-    def refresh(self, timeline = None):
+    def set_twitterapi(self, api):
+        self.twitter = api
+
+    def set_timeline(self, method, interval = -1):
+        self.tlthread = self.twitter.create_timeline(method, interval)
+        self.tlthread.reloadEventHandler = self.on_timeline_reload
+        self.tlthread.start()
+    
+    def on_timeline_reload(self, ids):
+        statuses = self.twitter.get_statuses(ids)
+        self.add(statuses)
+    
+    def add(self, statuses):
+        self.timeline = statuses + self.timeline
+        self.refresh()
+    
+    def refresh(self):
         self.wname.clear()
         self.wtext.clear()
         
         (my, mx) = self.wtext.getmaxyx()
         
-        if timeline:
-            self.timeline = timeline
-        
         y = 0
-        for i, s in enumerate(tuple((self.timeline[::-1])[self.offset:])):
+        for i, s in enumerate(self.timeline[self.offset:]):
             cnt = ctools.cw_count(s.text)
             row = int(math.ceil(float(cnt) / float(mx)))
             rem = my - y
@@ -69,10 +84,10 @@ class StatusView():
             else:
                 attr = curses.A_NORMAL
             
-            ctools.dputs(attr)
-            
+#            ctools.dputs("Status: %d %s %s" % (attr, s.user.screen_name, s.text))
+
             self.wname.addstr(y, 0, s.user.screen_name[:9], attr)
-            self.wtext.addstr(y, 0, s.text.encode("utf-8"), attr)
+            self.wtext.addstr(y, 0, s.text.encode(self.CENCODING), attr)
             y = self.wtext.getyx()[0] + 1
             if y >= my: 
                 self.last = i
@@ -82,7 +97,7 @@ class StatusView():
         self.wtext.refresh()
     
     def scroll(self, i = 1):
-        self.offset += i
+        self.offset += i if self.offset + i >= 0 else 0
         self.refresh()
     
     def select(self, i):
