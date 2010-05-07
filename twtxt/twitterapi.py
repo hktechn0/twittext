@@ -53,6 +53,9 @@ class twitterapi():
         
         return None
 
+    def get_statuses(self, ids):
+        return tuple(self.statuses[i] for i in tuple(ids))
+
 # Timeline Thread
 class timeline_thread(threading.Thread):
     def __init__(self, func, interval, maxn, args, kwargs):

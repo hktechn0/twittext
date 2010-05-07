@@ -4,6 +4,8 @@ import twitterapi
 import statusview
 import curses
 
+import cursestools as ctools
+
 class Main:
     def __init__(self, conf):
         self.twitter = twitterapi.twitterapi(conf.get_token(), 200)
@@ -17,6 +19,6 @@ class Main:
         stdcur.getch()
 
     def refresh(self, ids):
-        print "aiueo"
-        self.view.refresh(tuple(self.hometl.timeline))
- 
+        statuses = self.twitter.get_statuses(ids)
+        ctools.dputs(statuses)
+        self.view.refresh(statuses)
