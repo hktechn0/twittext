@@ -43,7 +43,7 @@ class StatusView():
         (my, mx) = win.getmaxyx()
         self.wname = win.subwin(my, 10, 0, 0)
         self.wtext = win.subwin(0, 11)
-            
+    
     def refresh(self, timeline = None):
         self.wname.clear()
         self.wtext.clear()
@@ -55,13 +55,13 @@ class StatusView():
         
         y = 0
         for i, s in enumerate(tuple((self.timeline[::-1])[self.offset:])):
-            cnt = cw_count(s.text)
+            cnt = ctools.cw_count(s.text)
             row = int(math.ceil(float(cnt) / float(mx)))
             rem = my - y
             
             if row > rem:
                 s = copy.copy(s)
-                s.text = split_text(s.text, (rem * mx) - 1)[0]
+                s.text = ctools.split_text(s.text, (rem * mx) - 1)[0]
             
             if self.selected == i:
                 attr = curses.A_STANDOUT
@@ -69,7 +69,7 @@ class StatusView():
             else:
                 attr = curses.A_NORMAL
             
-            dputs(attr)
+            ctools.dputs(attr)
             
             self.wname.addstr(y, 0, s.user.screen_name[:9], attr)
             self.wtext.addstr(y, 0, s.text.encode("utf-8"), attr)

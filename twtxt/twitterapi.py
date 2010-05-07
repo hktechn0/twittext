@@ -14,6 +14,7 @@ class twitterapi():
     def __init__(self, keys, maxn = 20):
         # Generate API Library instance
         self.api = twoauth.api(*keys)
+#        self.api.initialize()
         self.threads = list()
         
         # User, Status Buffer
@@ -21,8 +22,8 @@ class twitterapi():
         self.statuses = dict()
         
         self.maxn = maxn
-        #self.myid = self.api.user.id
-        #self.users[self.myid] = self.api.user
+#        self.myid = self.api.user.id
+#        self.users[self.myid] = self.api.user
     
     def create_timeline(self, func, interval, args = (), kwargs = {}):
         # Add New Timeline Thread
@@ -93,6 +94,7 @@ class timeline_thread(threading.Thread):
                 last = None
                 ctools.dputs("[Error] TwitterAPI ")
                 ctools.dputs(e)
+                ctools.dputs(self.func)
             
             self.on_timeline_refresh()
             
@@ -112,8 +114,8 @@ class timeline_thread(threading.Thread):
                 self.kwargs["since_id"] = self.lastid
             
             # debug print
-            print "[debug] reload", time.strftime("%H:%M:%S"),
-            print self.func.func_name, self.args, self.kwargs
+#            print "[debug] reload", time.strftime("%H:%M:%S"),
+#            print self.func.func_name, self.args, self.kwargs
             
             # Reload lock
             self.lock.clear()

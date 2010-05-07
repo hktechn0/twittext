@@ -17,7 +17,6 @@ class Main:
         stdcur.getch()
 
     def refresh(self, ids):
-        stdcur.addstr("ac")
-        self.view.refresh(self.hometl.timeline)
-        stdcur.getch()
+        print "aiueo"
+        self.view.refresh(tuple(self.hometl.timeline))
  

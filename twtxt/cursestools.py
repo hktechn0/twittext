@@ -27,6 +27,7 @@ import re
 import htmlentitydefs
 import curses
 
+# split_text by width
 def split_text(s, w):
     i = 0
     ss = unicode()
@@ -45,6 +46,37 @@ def split_text(s, w):
     if ss: sss.append(ss)
     return sss
 
+# isascii?
+def isascii(c):
+    if 0x00 <= ord(c) <= 0x7f:
+        return True
+    else:
+        return False
+
+# Character width count
+def cw_count(string):
+    cnt = 0
+
+    for c in string:
+        cnt += 1 if isascii(c) else 2
+    
+    return cnt
+
+# Extract string by width
+def exstr_width(string, cnt):
+    width = 0
+    i = 0
+
+    for c in string:
+        width += 1 if isascii(c) else 2
+
+        if width >= cnt:
+            break
+        else:
+            i += 1
+
+    return string[:i]
+
 def replace_htmlentity(string):
     amp = string.find('&')
     if amp == -1:
@@ -58,6 +90,13 @@ def replace_htmlentity(string):
         string = string.replace("&%s;" % name, unichr(c))
 
     return string
+
+# isprintable?
+def isprintable(c):
+    if 0x20 <= ord(c) <= 0x7e:
+        return True
+    else:
+        return False
 
 def delete_notprintable(string):
     s = unicode()

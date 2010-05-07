@@ -16,7 +16,7 @@ class settings(UserDict.UserDict):
         return (self.get("ckey"), self.get("csecret"))
 
     def get_token(self):
-        return self.get_consumer() + (self.uget("atoken"), self.uget("asecret"))
+        return self.get_consumer() + (self.uget("atoken"), self.uget("asecret"), self.get_screen_name())
 
     def get_screen_name(self):
         return self.user
@@ -28,7 +28,7 @@ class settings(UserDict.UserDict):
             self["user"] = dict()
         self["user"][screen_name] = dict()
         self["user"][screen_name]["atoken"] = atoken
-        self["user"][screen_name]["asecret"] = atoken
+        self["user"][screen_name]["asecret"] = asecret
         self["user"][screen_name]["footer"] = footer
     
     def change_user(self, screen_name):

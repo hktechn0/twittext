@@ -116,17 +116,6 @@ def utf2ucs(utf):
     
     return unichr(ucs)
 
-def isascii(c):
-    if 0x00 <= ord(c) <= 0x7f:
-        return True
-    else:
-        return False
-
-def isprintable(c):
-    if 0x20 <= ord(c) <= 0x7e:
-        return True
-    else:
-        return False
 
 # no use....
 def getoffset(s, cc, setx, maxx):
@@ -142,30 +131,6 @@ def getoffset(s, cc, setx, maxx):
 
     return j
 
-# Character width count
-# no use...
-def cw_count(string):
-    cnt = 0
-
-    for c in string:
-        cnt += 1 if isascii(c) else 2
-    
-    return cnt
-
-# Extract string by width
-def exstr_width(string, cnt):
-    width = 0
-    i = 0
-
-    for c in string:
-        width += 1 if isascii(c) else 2
-
-        if width >= cnt:
-            break
-        else:
-            i += 1
-
-    return string[:i]
 
 def rewrite_text(stdcur, setx, sety, s, i):
     (maxy, maxx) = stdcur.getmaxyx()
