@@ -22,6 +22,7 @@ class twitterapi():
         self.statuses = dict()
         
         self.maxn = maxn
+        self.my_name = keys[-1]
 #        self.myid = self.api.user.id
 #        self.users[self.myid] = self.api.user
     

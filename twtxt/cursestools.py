@@ -32,7 +32,7 @@ def split_text(s, w):
     i = 0
     ss = unicode()
     sss = list()
-
+    
     for c in unicode(s):
         i += 1 if 0x00 <= ord(c) <= 0x7f else 2        
         ss += c
@@ -42,7 +42,7 @@ def split_text(s, w):
             else: sss.append(ss)            
             ss = unicode()
             i = 0
-
+    
     if ss: sss.append(ss)
     return sss
 
@@ -131,6 +131,25 @@ def attr_select(post, me):
             return curses.color_pair(2)
 
     return 0
+
+def utf2ucs(utf):
+    if utf & 0x80:
+        # multibyte
+        buf = list()
+        while not (utf & 0x40):
+            buf.append(utf & 0x3f)
+            utf >>= 8
+        buf.append(utf & (0x3f >> len(buf)))
+
+        ucs = 0
+        while buf:
+            ucs <<= 6
+            ucs += buf.pop()
+    else:
+        # ascii
+        ucs = utf
+    
+    return unichr(ucs)
 
 def dputs(*args):
     fp = open("debug", 'a')
