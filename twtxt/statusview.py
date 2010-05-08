@@ -63,6 +63,12 @@ class StatusView():
         statuses = self.twitter.get_statuses(ids)
         self.add(statuses)
     
+    def get_selected_statusid(self):
+        if self.selected != None:
+            return self.timeline[self.offset + self.selected].id
+        else:
+            return None
+    
     def add(self, statuses):
         self.timeline = statuses + self.timeline
         if self.enable:
@@ -86,16 +92,18 @@ class StatusView():
             cnt = ctools.cw_count(s.text)
             row = int(math.ceil(float(cnt) / float(mx)))
             rem = my - y
+            xmod = mx - (cnt % mx)
             
             if row > rem:
                 s = copy.copy(s)
                 s.text = ctools.split_text(s.text, (rem * mx) - 1)[0]
+                xmod = 0
+
+            attr = ctools.attr_select(s, self.twitter.my_name)
             
             if self.selected == i:
-                attr = curses.A_STANDOUT
-#                self.selected = None
-            else:
-                attr = curses.A_NORMAL
+                attr |= curses.A_STANDOUT
+                s.text += " " * (xmod - 1)
             
             self.wname.addstr(y, 0, s.user.screen_name[:9], attr)
             self.wtext.addstr(y, 0, s.text.encode(self.CENCODING), attr)

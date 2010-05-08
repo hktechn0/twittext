@@ -108,12 +108,11 @@ def delete_notprintable(string):
 
     return s
 
-def attr_select(post, me):
-    user = post["user"]["screen_name"]
-    reply_to = post["in_reply_to_screen_name"] if (
+def attr_select(post, myname):
+    user = post.user.screen_name
+    reply_to = post.in_reply_to_screen_name if (
         "in_reply_to_screen_name" in post.keys()) else None
-    myname = me["screen_name"]
-
+    
     # Color Change
     if user == myname:
         # my status
@@ -122,7 +121,7 @@ def attr_select(post, me):
         # reply to me
         return (curses.color_pair(1) | curses.A_BOLD)
     else:
-        at = post["text"].find("@%s" % myname)
+        at = post.text.find("@%s" % myname)
         if at == 0:
             # reply to me, but no in_reply_to
             return curses.color_pair(1)

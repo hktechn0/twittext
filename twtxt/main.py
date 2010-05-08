@@ -56,7 +56,11 @@ class Main:
                 else:
                     view.scroll(-1)
             elif c in (curses.KEY_ENTER, 0x0a):
-                self.status_update()
+                if selectmode:
+                    sid = view.get_selected_statusid()
+                    self.menu_popup(sid)
+                else:
+                    self.status_update()
             elif c == ord('q'):
                 break
             else:
@@ -95,3 +99,12 @@ class Main:
         self.entry = entry.cursesEntry(self.entrycur)
         self.entrycur.addstr(0, 0, "[@%s] " % self.twitter.my_name)
         self.entry.setyx(*self.entrycur.getyx())
+
+    def menu_popup(self, statusid):
+        (my, mx) = self.statuscur.getmaxyx()
+        popup = self.statuscur.derwin(10, 20, my / 2 - 5, mx / 2 - 10)
+        popup.bkgd(" ", curses.color_pair(4))
+        popup.clear()
+        popup.box()
+        popup.refresh()
+
