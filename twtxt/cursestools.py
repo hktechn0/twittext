@@ -100,12 +100,12 @@ def isprintable(c):
 
 def delete_notprintable(string):
     s = unicode()
-
+    
     for c in unicode(string):
         if (not(0x00 <= ord(c) <= 0x7f)
             or 0x20 <= ord(c) <= 0x7e):
             s += c
-
+    
     return s
 
 def attr_select(post, myname):

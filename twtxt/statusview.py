@@ -39,11 +39,15 @@ class StatusView():
     
     def __init__(self, win):
         self.win = win
-
         (my, mx) = win.getmaxyx()
+        (by, bx) = win.getbegyx()
+        ctools.dputs((by, bx))
+        
         self.wname = win.derwin(my - 1, 10, 0, 0)
-        self.wtext = win.derwin(my - 1, mx - 11, 0, 11)
         self.winfo = win.derwin(1, mx, my - 1, 0)
+        
+        self.wtext = curses.newpad(my, mx - 10)
+        self.wtext_refp = (0, 0, by, bx + 10, my, mx)
         
         self.win.leaveok(1)
         self.wname.leaveok(1)
@@ -77,36 +81,41 @@ class StatusView():
     
     def refresh(self):
         syx = curses.getsyx()
-        ctools.dputs(syx)
-        
         self.wname.clear()
         self.wtext.clear()
         
         (my, mx) = self.wtext.getmaxyx()
+        my -= 1
         
         y = 0
         for i, s in enumerate(self.timeline[self.offset:]):
             # escape illegal character
-            s.text = ctools.delete_notprintable(s.text)
+            text = ctools.delete_notprintable(s.text)
             
-            cnt = ctools.cw_count(s.text)
+            cnt = ctools.cw_count(text)
             row = int(math.ceil(float(cnt) / float(mx)))
             rem = my - y
-            xmod = mx - (cnt % mx)
+            xmod = cnt % mx
             
             if row > rem:
                 s = copy.copy(s)
-                s.text = ctools.split_text(s.text, (rem * mx) - 1)[0]
-                xmod = 0
-
+                text = ctools.split_text(text, (rem * mx) - 1)[0]
+            
             attr = ctools.attr_select(s, self.twitter.my_name)
             
             if self.selected == i:
                 attr |= curses.A_STANDOUT
-                s.text += " " * (xmod - 1)
+                if xmod != 0:
+                    text += " " * (mx - xmod)
             
-            self.wname.addstr(y, 0, s.user.screen_name[:9], attr)
-            self.wtext.addstr(y, 0, s.text.encode(self.CENCODING), attr)
+            try:
+                self.wname.addstr(y, 0, s.user.screen_name[:9], attr)
+                self.wtext.addstr(y, 0, text.encode(self.CENCODING), attr)
+            except:
+                curses.endwin()
+                print s.user.screen_name, text
+                print ["%x %s" % (ord(c), c)
+                       for c in text]
 
             y += row
             if y >= my: 
@@ -114,7 +123,7 @@ class StatusView():
                 break
         
         self.wname.refresh()
-        self.wtext.refresh()
+        self.wtext.refresh(*self.wtext_refp)
         
         curses.setsyx(*syx)
         self.on_refresh()

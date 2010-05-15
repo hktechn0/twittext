@@ -6,6 +6,7 @@ import curses
 
 import cursestools as ctools
 import entry
+import popup
 
 class Main:
     views = dict()
@@ -39,6 +40,7 @@ class Main:
         view = self.views[self.now]
         
         while True:
+            curses.flushinp()
             c = self.stdcur.getch()
             ctools.dputs("Key: 0x%x" % c)
             
@@ -99,12 +101,12 @@ class Main:
         self.entry = entry.cursesEntry(self.entrycur)
         self.entrycur.addstr(0, 0, "[@%s] " % self.twitter.my_name)
         self.entry.setyx(*self.entrycur.getyx())
-
+    
     def menu_popup(self, statusid):
-        (my, mx) = self.statuscur.getmaxyx()
-        popup = self.statuscur.derwin(10, 20, my / 2 - 5, mx / 2 - 10)
-        popup.bkgd(" ", curses.color_pair(4))
-        popup.clear()
-        popup.box()
-        popup.refresh()
+        menu = popup.PopupMenu(10, 30)
 
+        (my, mx) = self.stdcur.getmaxyx()
+        (cy, cx) = ((my + 1) / 2, mx / 2)
+        r = (0, 0,
+             cy - 5, cx - 15, cy + 5, cx + 15)
+        menu.popup(r)
