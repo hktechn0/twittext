@@ -26,8 +26,18 @@
 from tools import *
 from newinput import *
 
+MODE_INVALID = -1
+MODE_HOME_TIMELINE = 0
+MODE_MENTION_TIMELINE = 1
+MODE_USER_TIMELINE = 2
+MODE_RETWEET_TIMELINE = 3
+MODE_PUBLIC_TIMELINE = 4
+MODE_FAVORITES = 5
+MODE_DIRECT_MESSAGES = 7
+
+
 def home(self):
-    if self.mode >= 0: self.headwin.clear()
+    if self.mode > MODE_INVALID: self.headwin.clear()
     self.footwin.clear()
     
     # Header
@@ -56,7 +66,7 @@ Listed: %d""" % (
         self.listed)
     self.footwin.addstr(0, 0, userinfo)
 
-    if self.mode != -1:
+    if self.mode != MODE_INVALID:
         # clear scroll hist
         if self.oldmode != self.mode:
             self.hist = list()
@@ -66,7 +76,7 @@ Listed: %d""" % (
         self.oldtmp = list(self.tmp)
 
     # timeline mode
-    if self.mode == 0:
+    if self.mode == MODE_HOME_TIMELINE:
         self.loading("Home Timeline")
 
         newtl = self.api.home_timeline(
@@ -80,17 +90,17 @@ Listed: %d""" % (
 
         if not self.max_id:
             self.since_id = self.hometl[-1]["id"]
-    elif self.mode == 1:
+    elif self.mode == MODE_MENTION_TIMELINE:
         self.loading("Tweets mentioning @%s" % 
                      (self.api.user["screen_name"]))
         self.tl = self.api.mentions(count = self.Y,
                                     max_id = self.max_id)
-    elif self.mode == 2:
+    elif self.mode == MODE_USER_TIMELINE:
         tluser = self.tmp.pop()
         self.loading("@%s Timeline" % tluser)
         self.tl = self.api.user_timeline(tluser, count = self.Y,
                                          max_id = self.max_id)
-    elif self.mode == 3:
+    elif self.mode == MODE_RETWEET_TIMELINE:
         m = self.tmp.pop()
         if m == 1:
             self.loading("Retweets by others")
@@ -104,18 +114,18 @@ Listed: %d""" % (
             self.loading("Your tweets, retweeted")
             self.tl = self.api.retweets_of_me(count = self.Y,
                                         max_id = self.max_id)
-    elif self.mode == 4:
+    elif self.mode == MODE_PUBLIC_TIMELINE:
         self.loading("Public Timeline")
         self.tl = self.api.public_timeline(count = self.Y,
                                            max_id = self.max_id)
-    elif self.mode == 5:
+    elif self.mode == MODE_FAVORITES:
         self.loading("Your Favorites")
         self.tl = self.api.favorites()
 #    elif self.mode == 6:
 #        q = self.tmp.pop()
 #        self.loading("Real-time results for %s" % q)
 #        self.tl = pass
-    elif self.mode == 7:
+    elif self.mode == MODE_DIRECT_MESSAGES:
         self.loading("Direct messages sent only to you")
         self.tl = self.api.dm_list(count = self.Y,
                                    max_id = self.max_id)
@@ -124,7 +134,7 @@ Listed: %d""" % (
     self.stdcur.addstr(0, 0, "Post?: ")
     self.stdcur.addstr(" " * (self.X - 8), curses.A_UNDERLINE)
 
-    self.mode = -1
+    self.mode = MODE_INVALID
     self.max_id = ""    
 
     # print timeline
@@ -147,7 +157,7 @@ Listed: %d""" % (
             if status: self.post(status)
         elif key == ord("@"):
             # Show Reply
-            self.mode = 1
+            self.mode = MODE_MENTION_TIMELINE
         elif key == ord("u"):
             # User Timeline
             self.clear_head()
@@ -155,10 +165,10 @@ Listed: %d""" % (
             self.stdcur.refresh()
             user = self.getstr()
             self.tmp.append(user)
-            self.mode = 2
+            self.mode = MODE_USER_TIMELINE
         elif key == ord("p"):
             # Public Timeline
-            self.mode = 4
+            self.mode = MODE_PUBLIC_TIMELINE
         elif key == ord("r"):
             # Retweet
             self.clear_head()
@@ -169,11 +179,11 @@ Listed: %d""" % (
 3: Your tweets, retweeted""")
             n = self.stdcur.getch() - ord("0")
             if n in (1, 2, 3):
-                self.mode = 3
+                self.mode = MODE_RETWEET_TIMELINE
                 self.tmp.append(n)
         elif key == ord("f"):
             # Favorite
-            self.mode = 5
+            self.mode = MODE_FAVORITES
         elif key == ord("F"):
             # Friendship
             self.clear_head()
@@ -192,7 +202,7 @@ Listed: %d""" % (
 #            self.mode = 6
         elif key == ord("d"):
             # Show Direct Messages
-            self.mode = 7
+            self.mode = MODE_DIRECT_MESSAGES
         elif key == ord("D"):
             # Send Direct Message
             self.clear_head()
@@ -203,7 +213,7 @@ Listed: %d""" % (
                 self.dmessage(user)
         elif key in (-1, curses.KEY_LEFT, ord("h"), ord(" ")):
             # Home Timeline
-            self.mode = 0
+            self.mode = MODE_HOME_TIMELINE
         elif key == ord("q"):
             # Quit
             return False
