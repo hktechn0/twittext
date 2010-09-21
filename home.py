@@ -94,11 +94,11 @@ Listed: %d""" % (
         m = self.tmp.pop()
         if m == 1:
             self.loading("Retweets by others")
-            self.tl = self.api.rt_to_me(count = self.Y,
+            self.tl = self.api.retweeted_to_me(count = self.Y,
                                         max_id = self.max_id)
         elif m == 2:
             self.loading("Retweets by you")
-            self.tl = self.api.rt_by_me(count = self.Y,
+            self.tl = self.api.retweeted_by_me(count = self.Y,
                                         max_id = self.max_id)
         elif m == 3:
             self.loading("Your tweets, retweeted")
