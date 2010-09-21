@@ -34,6 +34,45 @@ MODE_RETWEET_TIMELINE = 3
 MODE_PUBLIC_TIMELINE = 4
 MODE_FAVORITES = 5
 MODE_DIRECT_MESSAGES = 7
+MODE_HELP = 8
+
+helptext = ("=== Command Mode ===", \
+			"Enter .... Updated status", \
+			"h ........ Show (Update) Home Timeline", \
+			"@ ........ Show mentions", \
+			"r ........ Show retweets", \
+			"p ........ Show public timeline", \
+			"u ........ Show user timeline", \
+			"f ........ Show your favorites", \
+			"d ........ Show Direct Messages", \
+			"D ........ Send direct message", \
+			"F ........ Friendship check", \
+			"q ........ Quit", \
+			"Key Down . To Status Selection Mode", \
+			"", \
+			"=== Status Selection Mode ===", \
+			"@ ........ Reply", \
+			"r ........ Retweet (Using retweet API method)", \
+			"q ........ Quote tweet", \
+			"u ........ User timeline", \
+			"U ........ Reply_to user timeline", \
+			"t ........ Show reply_to status", \
+			"d ........ Destroy status", \
+			"D ........ Send direct message", \
+			"f ........ Favorite status", \
+			"F ........ Friendship check",\
+			"Key Left . Return to Command Mode", \
+			"", \
+			"=== Key alias ===", \
+			"Space .... Update Home Timeline", \
+			"Key Left . Update Home Timeline", \
+			"", \
+			"Enter .... Reply", \
+			"Escape ... To Command Mode", \
+			"Backspace. To Command Mode", \
+			"Key Right. Show User Timeline", \
+			)
+
 
 
 def home(self):
@@ -65,6 +104,9 @@ Listed: %d""" % (
         me["friends_count"], me["followers_count"],
         self.listed)
     self.footwin.addstr(0, 0, userinfo)
+
+    helpinfo = "Press ? for Help"
+    self.footwin.addstr(0, self.X - len(helpinfo) - 1, helpinfo)
 
     if self.mode != MODE_INVALID:
         # clear scroll hist
@@ -132,16 +174,22 @@ Listed: %d""" % (
         self.loading("Direct messages sent only to you")
         self.tl = self.api.dm_list(count = self.Y,
                                    max_id = self.max_id)
+    elif self.mode == MODE_HELP:
+        self.loading("Help")
 
     # print header
     self.stdcur.addstr(0, 0, "Post?: ")
     self.stdcur.addstr(" " * (self.X - 8), curses.A_UNDERLINE)
 
+    # print timeline
+    if self.mode == MODE_HELP:
+        self.tl_help(helptext)
+        lshow = None
+    else:
+        lshow = self.tl_show(self.tl)
+
     self.mode = MODE_INVALID
     self.max_id = ""    
-
-    # print timeline
-    lshow = self.tl_show(self.tl)
 
     while True:
         # key input
@@ -149,7 +197,10 @@ Listed: %d""" % (
 
         key = self.stdcur.getch(0, 7)
 
-        if key == curses.KEY_DOWN:
+        if self.oldmode == MODE_HELP:
+            # nothing
+            self.mode = MODE_HOME_TIMELINE
+        elif key == curses.KEY_DOWN:
             # Post Select Mode
             if lshow: self.tl_select(lshow)
         elif key in (curses.KEY_ENTER, 0x0a):
@@ -217,6 +268,9 @@ Listed: %d""" % (
         elif key in (-1, curses.KEY_LEFT, ord("h"), ord(" ")):
             # Home Timeline
             self.mode = MODE_HOME_TIMELINE
+        elif key == ord("?"):
+            # Show help
+            self.mode = MODE_HELP
         elif key == ord("q"):
             # Quit
             return False
