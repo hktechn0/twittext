@@ -82,10 +82,13 @@ Listed: %d""" % (
         newtl = self.api.home_timeline(
             count = self.Y, 
             since_id = self.since_id, max_id = self.max_id)
-        self.newcnt = len(newtl) \
-            if not self.max_id and self.since_id else 0
 
-        self.hometl.extend(newtl)
+        if newtl:
+            self.newcnt = len(newtl) \
+                if not self.max_id and self.since_id else 0
+
+            self.hometl.extend(newtl)
+
         self.tl = self.hometl
 
         if not self.max_id:
