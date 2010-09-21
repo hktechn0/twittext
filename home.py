@@ -102,7 +102,7 @@ Listed: %d""" % (
                                         max_id = self.max_id)
         elif m == 3:
             self.loading("Your tweets, retweeted")
-            self.tl = self.api.rt_of_me(count = self.Y,
+            self.tl = self.api.retweets_of_me(count = self.Y,
                                         max_id = self.max_id)
     elif self.mode == 4:
         self.loading("Public Timeline")
