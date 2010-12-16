@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+#-*- coding: utf-8 --*
 
 import twoauth
 import twoauth.streaming
@@ -12,7 +12,7 @@ class Twittext(object):
         self.terminal = terminalui.TerminalUI()
         
         text = terminalui.Entry()
-        text.set_size(-1, 3)
+        text.set_size(-1, 1)
         self.homeview = terminalui.ListView(2)
         self.homeview.set_column_width((10, -1))
         
