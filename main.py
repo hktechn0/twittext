@@ -38,6 +38,7 @@ class twittext():
     from home import home
     from tl_show import tl_show
     from tl_select import tl_select
+    from tl_help import tl_help
     
     def __init__(self, ckey, csecret, atoken, asecret, screen_name):
         locale.setlocale(locale.LC_ALL, "")
